@@ -1,0 +1,5392 @@
+{
+  "version": "0.1.1",
+  "semantic_model": [
+    {
+      "name": "sa_insights",
+      "description": "South African macroeconomic indicators with forecasting. One fact dataset per indicator over monthly, quarterly or annual time dimensions, sourced from the World Bank, IMF and FRED.",
+      "ai_context": {
+        "instructions": "Use this model for questions about the South African economy: growth, inflation, employment, interest rates, the rand, trade and the fiscal position. Each fact dataset holds one indicator. Join to the matching dim_date_* dataset on period for calendar attributes. Values are published statistics, not real-time market data; check the observation coverage before drawing conclusions.",
+        "synonyms": [
+          "South Africa",
+          "SA macro",
+          "SA economy",
+          "South African statistics"
+        ],
+        "examples": [
+          "What is South Africa's inflation rate?",
+          "How has the rand moved against the dollar?",
+          "Compare GDP growth and unemployment over the last decade",
+          "Is the repo rate restrictive in real terms?"
+        ]
+      },
+      "datasets": [
+        {
+          "name": "dim_date_month",
+          "source": "sa_insights.dim_date_month",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Monthly calendar dimension.",
+          "ai_context": {
+            "synonyms": [
+              "calendar",
+              "date dimension",
+              "time dimension"
+            ],
+            "examples": [
+              "Group month data by year"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "First day of the period this row represents."
+            },
+            {
+              "name": "grain",
+              "expression": {
+                "sql": "grain"
+              },
+              "datatype": "String",
+              "description": "Frequency of the series this period belongs to."
+            },
+            {
+              "name": "year",
+              "expression": {
+                "sql": "EXTRACT(YEAR FROM period)"
+              },
+              "datatype": "Integer",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Calendar year of the period."
+            },
+            {
+              "name": "quarter",
+              "expression": {
+                "sql": "EXTRACT(QUARTER FROM period)"
+              },
+              "datatype": "Integer",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Calendar quarter of the period."
+            },
+            {
+              "name": "month_of_year",
+              "expression": {
+                "sql": "EXTRACT(MONTH FROM period)"
+              },
+              "datatype": "Integer",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Calendar month of year of the period."
+            }
+          ]
+        },
+        {
+          "name": "dim_date_quarter",
+          "source": "sa_insights.dim_date_quarter",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Quarterly calendar dimension.",
+          "ai_context": {
+            "synonyms": [
+              "calendar",
+              "date dimension",
+              "time dimension"
+            ],
+            "examples": [
+              "Group quarter data by year"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "First day of the period this row represents."
+            },
+            {
+              "name": "grain",
+              "expression": {
+                "sql": "grain"
+              },
+              "datatype": "String",
+              "description": "Frequency of the series this period belongs to."
+            },
+            {
+              "name": "year",
+              "expression": {
+                "sql": "EXTRACT(YEAR FROM period)"
+              },
+              "datatype": "Integer",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Calendar year of the period."
+            },
+            {
+              "name": "quarter",
+              "expression": {
+                "sql": "EXTRACT(QUARTER FROM period)"
+              },
+              "datatype": "Integer",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Calendar quarter of the period."
+            }
+          ]
+        },
+        {
+          "name": "dim_date_year",
+          "source": "sa_insights.dim_date_year",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Annual calendar dimension.",
+          "ai_context": {
+            "synonyms": [
+              "calendar",
+              "date dimension",
+              "time dimension"
+            ],
+            "examples": [
+              "Group year data by year"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "First day of the period this row represents."
+            },
+            {
+              "name": "grain",
+              "expression": {
+                "sql": "grain"
+              },
+              "datatype": "String",
+              "description": "Frequency of the series this period belongs to."
+            },
+            {
+              "name": "year",
+              "expression": {
+                "sql": "EXTRACT(YEAR FROM period)"
+              },
+              "datatype": "Integer",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Calendar year of the period."
+            }
+          ]
+        },
+        {
+          "name": "fct_gdp_growth",
+          "source": "sa_insights.fct_gdp_growth",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Annual growth of real gross domestic product, constant 2015 prices. Covers 1961-01 to 2025-01.",
+          "ai_context": {
+            "synonyms": [
+              "gdp growth",
+              "economic growth",
+              "GDP",
+              "output growth"
+            ],
+            "examples": [
+              "What is the latest gdp growth?",
+              "Show gdp growth by year over the last five years",
+              "Is gdp growth improving?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for GDP growth.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of GDP growth, measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean GDP growth across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest GDP growth in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest GDP growth in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of GDP growth across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"gdp_growth\", \"label\": \"GDP growth\", \"short_label\": \"GDP growth\", \"category\": \"Growth & Output\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"worldbank\", \"higher_is_better\": true, \"upstream_indicator\": \"NY.GDP.MKTP.KD.ZG\", \"observations\": 65, \"first_period\": \"1961-01-01\", \"last_period\": \"2025-01-01\", \"last_value\": 1.11462608103956}"
+            }
+          ]
+        },
+        {
+          "name": "fct_gdp_per_capita",
+          "source": "sa_insights.fct_gdp_per_capita",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Real GDP per person, constant 2015 US dollars. Covers 1960-01 to 2025-01.",
+          "ai_context": {
+            "synonyms": [
+              "gdp per capita",
+              "gdp per head"
+            ],
+            "examples": [
+              "What is the latest gdp per head?",
+              "Show gdp per capita by year over the last five years",
+              "Is gdp per capita improving?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for GDP per capita.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of GDP per capita, measured in US$ (2015).",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean GDP per capita across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest GDP per capita in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest GDP per capita in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of GDP per capita across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"gdp_per_capita\", \"label\": \"GDP per capita\", \"short_label\": \"GDP per head\", \"category\": \"Growth & Output\", \"unit\": \"US$ (2015)\", \"frequency\": \"A\", \"provider\": \"worldbank\", \"higher_is_better\": true, \"upstream_indicator\": \"NY.GDP.PCAP.KD\", \"observations\": 66, \"first_period\": \"1960-01-01\", \"last_period\": \"2025-01-01\", \"last_value\": 5713.1191878767}"
+            }
+          ]
+        },
+        {
+          "name": "fct_retail_sales",
+          "source": "sa_insights.fct_retail_sales",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Volume of retail trade at constant prices. Source: SARB, updated monthly. Covers 1980-01 to 2026-08.",
+          "ai_context": {
+            "synonyms": [
+              "retail trade"
+            ],
+            "examples": [
+              "What is the latest retail trade?",
+              "Show retail trade by month over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Retail trade.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Retail trade, measured in index (2019=100).",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Retail trade across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Retail trade in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Retail trade in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Retail trade across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"retail_sales\", \"label\": \"Retail trade\", \"short_label\": \"Retail trade\", \"category\": \"Growth & Output\", \"unit\": \"index (2019=100)\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 560, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-08-01\", \"last_value\": 108.5767}"
+            }
+          ]
+        },
+        {
+          "name": "fct_manufacturing",
+          "source": "sa_insights.fct_manufacturing",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Manufacturing production index. Source: SARB, updated monthly. Covers 1980-01 to 2026-08.",
+          "ai_context": {
+            "synonyms": [
+              "manufacturing output",
+              "manufacturing"
+            ],
+            "examples": [
+              "What is the latest manufacturing?",
+              "Show manufacturing output by month over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Manufacturing output.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Manufacturing output, measured in index (2019=100).",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Manufacturing output across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Manufacturing output in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Manufacturing output in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Manufacturing output across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"manufacturing\", \"label\": \"Manufacturing output\", \"short_label\": \"Manufacturing\", \"category\": \"Growth & Output\", \"unit\": \"index (2019=100)\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 560, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-08-01\", \"last_value\": 89.6}"
+            }
+          ]
+        },
+        {
+          "name": "fct_mining",
+          "source": "sa_insights.fct_mining",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Gold mining production volume index. Source: SARB, updated monthly. Covers 1980-01 to 2026-08.",
+          "ai_context": {
+            "synonyms": [
+              "mining output",
+              "mining"
+            ],
+            "examples": [
+              "What is the latest mining?",
+              "Show mining output by month over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Mining output.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Mining output, measured in index (2019=100).",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Mining output across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Mining output in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Mining output in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Mining output across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"mining\", \"label\": \"Mining output\", \"short_label\": \"Mining\", \"category\": \"Growth & Output\", \"unit\": \"index (2019=100)\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 560, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-08-01\", \"last_value\": 80.5}"
+            }
+          ]
+        },
+        {
+          "name": "fct_vehicle_sales",
+          "source": "sa_insights.fct_vehicle_sales",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Total new vehicle sales index \u2014 a timely read on household demand. Covers 1980-01 to 2026-10.",
+          "ai_context": {
+            "synonyms": [
+              "new vehicle sales"
+            ],
+            "examples": [
+              "What is the latest new vehicle sales?",
+              "Show new vehicle sales by month over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for New vehicle sales.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of New vehicle sales, measured in index (2019=100).",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean New vehicle sales across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest New vehicle sales in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest New vehicle sales in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of New vehicle sales across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"vehicle_sales\", \"label\": \"New vehicle sales\", \"short_label\": \"New vehicle sales\", \"category\": \"Growth & Output\", \"unit\": \"index (2019=100)\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 562, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-10-01\", \"last_value\": 128.6173}"
+            }
+          ]
+        },
+        {
+          "name": "fct_leading_indicator",
+          "source": "sa_insights.fct_leading_indicator",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Composite leading business cycle indicator, designed to anticipate turning points. Covers 1980-01 to 2026-08.",
+          "ai_context": {
+            "synonyms": [
+              "leading indicator"
+            ],
+            "examples": [
+              "What is the latest leading indicator?",
+              "Show leading indicator by month over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Leading indicator.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Leading indicator, measured in index (2019=100).",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Leading indicator across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Leading indicator in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Leading indicator in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Leading indicator across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"leading_indicator\", \"label\": \"Leading indicator\", \"short_label\": \"Leading indicator\", \"category\": \"Growth & Output\", \"unit\": \"index (2019=100)\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 560, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-08-01\", \"last_value\": 119.6}"
+            }
+          ]
+        },
+        {
+          "name": "fct_real_gdp_q",
+          "source": "sa_insights.fct_real_gdp_q",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Quarterly real GDP at constant prices, seasonally adjusted. Covers 1993-01 to 2026-01.",
+          "ai_context": {
+            "synonyms": [
+              "real gdp (quarterly)",
+              "real gdp"
+            ],
+            "examples": [
+              "What is the latest real gdp?",
+              "Show real gdp (quarterly) by quarter over the last five years",
+              "Is real gdp (quarterly) improving?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Real GDP (quarterly).",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Real GDP (quarterly), measured in R million.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Real GDP (quarterly) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Real GDP (quarterly) in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Real GDP (quarterly) in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Real GDP (quarterly) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"real_gdp_q\", \"label\": \"Real GDP (quarterly)\", \"short_label\": \"Real GDP\", \"category\": \"Growth & Output\", \"unit\": \"R million\", \"frequency\": \"Q\", \"provider\": \"fred\", \"higher_is_better\": true, \"upstream_indicator\": \"NGDPRSAXDCZAQ\", \"observations\": 133, \"first_period\": \"1993-01-01\", \"last_period\": \"2026-01-01\", \"last_value\": 1193022.7}"
+            }
+          ]
+        },
+        {
+          "name": "fct_cpi_yoy",
+          "source": "sa_insights.fct_cpi_yoy",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Consumer price inflation, year-on-year. Published by Stats SA and carried on the SARB Web API, which updates it within days of release. Covers 2000-01 to 2026-09.",
+          "ai_context": {
+            "synonyms": [
+              "cpi inflation (yoy)",
+              "inflation",
+              "cost of living",
+              "price growth"
+            ],
+            "examples": [
+              "What is the latest inflation?",
+              "Show cpi inflation (yoy) by month over the last five years",
+              "Is cpi inflation (yoy) rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for CPI inflation (YoY).",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of CPI inflation (YoY), measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean CPI inflation (YoY) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest CPI inflation (YoY) in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest CPI inflation (YoY) in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of CPI inflation (YoY) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"cpi_yoy\", \"label\": \"CPI inflation (YoY)\", \"short_label\": \"Inflation\", \"category\": \"Prices\", \"unit\": \"%\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 321, \"first_period\": \"2000-01-01\", \"last_period\": \"2026-09-01\", \"last_value\": 4.5}"
+            }
+          ]
+        },
+        {
+          "name": "fct_ppi_yoy",
+          "source": "sa_insights.fct_ppi_yoy",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Producer price inflation, year-on-year. Leads consumer inflation through the supply chain. Covers 2000-01 to 2026-09.",
+          "ai_context": {
+            "synonyms": [
+              "ppi inflation (yoy)"
+            ],
+            "examples": [
+              "What is the latest ppi inflation (yoy)?",
+              "Show ppi inflation (yoy) by month over the last five years",
+              "Is ppi inflation (yoy) rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for PPI inflation (YoY).",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of PPI inflation (YoY), measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean PPI inflation (YoY) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest PPI inflation (YoY) in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest PPI inflation (YoY) in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of PPI inflation (YoY) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"ppi_yoy\", \"label\": \"PPI inflation (YoY)\", \"short_label\": \"PPI inflation (YoY)\", \"category\": \"Prices\", \"unit\": \"%\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 321, \"first_period\": \"2000-01-01\", \"last_period\": \"2026-09-01\", \"last_value\": 6.1836}"
+            }
+          ]
+        },
+        {
+          "name": "fct_cpi_index",
+          "source": "sa_insights.fct_cpi_index",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Consumer price index level, all items. Base varies by year. Covers 1957-01 to 2025-01.",
+          "ai_context": {
+            "synonyms": [
+              "cpi (all items)",
+              "cpi"
+            ],
+            "examples": [
+              "What is the latest cpi?",
+              "Show cpi (all items) by month over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for CPI (all items).",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of CPI (all items), measured in index.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean CPI (all items) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest CPI (all items) in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest CPI (all items) in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of CPI (all items) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"cpi_index\", \"label\": \"CPI (all items)\", \"short_label\": \"CPI\", \"category\": \"Prices\", \"unit\": \"index\", \"frequency\": \"M\", \"provider\": \"dbnomics\", \"higher_is_better\": null, \"upstream_indicator\": {\"REF_AREA\": [\"ZA\"], \"INDICATOR\": [\"PCPI_IX\"], \"FREQ\": [\"M\"]}, \"observations\": 817, \"first_period\": \"1957-01-01\", \"last_period\": \"2025-01-01\", \"last_value\": 205.407737238383}"
+            }
+          ]
+        },
+        {
+          "name": "fct_inflation_annual",
+          "source": "sa_insights.fct_inflation_annual",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Annual average consumer price inflation. Covers 1960-01 to 2025-01.",
+          "ai_context": {
+            "synonyms": [
+              "inflation (annual avg)",
+              "inflation"
+            ],
+            "examples": [
+              "What is the latest inflation?",
+              "Show inflation (annual avg) by year over the last five years",
+              "Is inflation (annual avg) rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Inflation (annual avg).",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Inflation (annual avg), measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Inflation (annual avg) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Inflation (annual avg) in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Inflation (annual avg) in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Inflation (annual avg) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"inflation_annual\", \"label\": \"Inflation (annual avg)\", \"short_label\": \"Inflation\", \"category\": \"Prices\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"worldbank\", \"higher_is_better\": false, \"upstream_indicator\": \"FP.CPI.TOTL.ZG\", \"observations\": 66, \"first_period\": \"1960-01-01\", \"last_period\": \"2025-01-01\", \"last_value\": 3.20550474112603}"
+            }
+          ]
+        },
+        {
+          "name": "fct_unemployment",
+          "source": "sa_insights.fct_unemployment",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Unemployed as a share of the total labour force (ILO modelled estimate). Covers 1991-01 to 2025-01.",
+          "ai_context": {
+            "synonyms": [
+              "unemployment rate",
+              "unemployment",
+              "joblessness"
+            ],
+            "examples": [
+              "What is the latest unemployment?",
+              "Show unemployment rate by year over the last five years",
+              "Is unemployment rate rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Unemployment rate.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Unemployment rate, measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Unemployment rate across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Unemployment rate in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Unemployment rate in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Unemployment rate across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"unemployment\", \"label\": \"Unemployment rate\", \"short_label\": \"Unemployment\", \"category\": \"Labour\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"worldbank\", \"higher_is_better\": false, \"upstream_indicator\": \"SL.UEM.TOTL.ZS\", \"observations\": 35, \"first_period\": \"1991-01-01\", \"last_period\": \"2025-01-01\", \"last_value\": 32.391}"
+            }
+          ]
+        },
+        {
+          "name": "fct_lf_participation",
+          "source": "sa_insights.fct_lf_participation",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Labour force as a share of the population aged 15 and older. Covers 1990-01 to 2025-01.",
+          "ai_context": {
+            "synonyms": [
+              "labour force participation",
+              "participation"
+            ],
+            "examples": [
+              "What is the latest participation?",
+              "Show labour force participation by year over the last five years",
+              "Is labour force participation improving?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Labour force participation.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Labour force participation, measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Labour force participation across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Labour force participation in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Labour force participation in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Labour force participation across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"lf_participation\", \"label\": \"Labour force participation\", \"short_label\": \"Participation\", \"category\": \"Labour\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"worldbank\", \"higher_is_better\": true, \"upstream_indicator\": \"SL.TLF.CACT.ZS\", \"observations\": 36, \"first_period\": \"1990-01-01\", \"last_period\": \"2025-01-01\", \"last_value\": 55.584}"
+            }
+          ]
+        },
+        {
+          "name": "fct_policy_rate",
+          "source": "sa_insights.fct_policy_rate",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "SARB policy rate (repo rate) set by the Monetary Policy Committee. Daily observations collapsed to month-end. Covers 2001-12 to 2026-11.",
+          "ai_context": {
+            "synonyms": [
+              "policy rate",
+              "repo rate",
+              "interest rate",
+              "MPC rate"
+            ],
+            "examples": [
+              "What is the latest repo rate?",
+              "Show policy rate by month over the last five years",
+              "Is policy rate rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Policy rate.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Policy rate, measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Policy rate across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Policy rate in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Policy rate in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Policy rate across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"policy_rate\", \"label\": \"Policy rate\", \"short_label\": \"Repo rate\", \"category\": \"Money & Rates\", \"unit\": \"%\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 300, \"first_period\": \"2001-12-01\", \"last_period\": \"2026-11-01\", \"last_value\": 7.25}"
+            }
+          ]
+        },
+        {
+          "name": "fct_lending_rate",
+          "source": "sa_insights.fct_lending_rate",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Prime overdraft lending rate. Source: SARB, updated with each MPC decision. Covers 2002-01 to 2026-11.",
+          "ai_context": {
+            "synonyms": [
+              "prime lending rate",
+              "lending rate"
+            ],
+            "examples": [
+              "What is the latest lending rate?",
+              "Show prime lending rate by month over the last five years",
+              "Is prime lending rate rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Prime lending rate.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Prime lending rate, measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Prime lending rate across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Prime lending rate in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Prime lending rate in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Prime lending rate across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"lending_rate\", \"label\": \"Prime lending rate\", \"short_label\": \"Lending rate\", \"category\": \"Money & Rates\", \"unit\": \"%\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 299, \"first_period\": \"2002-01-01\", \"last_period\": \"2026-11-01\", \"last_value\": 10.75}"
+            }
+          ]
+        },
+        {
+          "name": "fct_bond_yield",
+          "source": "sa_insights.fct_bond_yield",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Daily average yield on government bonds of 10 years and longer. Covers 2002-01 to 2026-11.",
+          "ai_context": {
+            "synonyms": [
+              "long bond yield",
+              "bond yield"
+            ],
+            "examples": [
+              "What is the latest bond yield?",
+              "Show long bond yield by month over the last five years",
+              "Is long bond yield rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Long bond yield.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Long bond yield, measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Long bond yield across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Long bond yield in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Long bond yield in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Long bond yield across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"bond_yield\", \"label\": \"Long bond yield\", \"short_label\": \"Bond yield\", \"category\": \"Money & Rates\", \"unit\": \"%\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 299, \"first_period\": \"2002-01-01\", \"last_period\": \"2026-11-01\", \"last_value\": 8.76}"
+            }
+          ]
+        },
+        {
+          "name": "fct_usd_zar",
+          "source": "sa_insights.fct_usd_zar",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Official SARB reference rate, daily, collapsed to month-end. Higher means a weaker rand. Covers 1980-01 to 2026-11.",
+          "ai_context": {
+            "synonyms": [
+              "rand per us dollar",
+              "rand / usd",
+              "rand",
+              "exchange rate",
+              "dollar rand"
+            ],
+            "examples": [
+              "What is the latest rand / usd?",
+              "Show rand per us dollar by month over the last five years",
+              "Is rand per us dollar rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Rand per US dollar.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Rand per US dollar, measured in ZAR.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Rand per US dollar across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Rand per US dollar in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Rand per US dollar in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Rand per US dollar across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"usd_zar\", \"label\": \"Rand per US dollar\", \"short_label\": \"Rand / USD\", \"category\": \"External Sector\", \"unit\": \"ZAR\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 563, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-11-01\", \"last_value\": 16.6795}"
+            }
+          ]
+        },
+        {
+          "name": "fct_reer",
+          "source": "sa_insights.fct_reer",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Trade-weighted exchange rate adjusted for relative consumer prices. A rise means South African exports have become less competitive. Covers 2000-01 to 2026-08.",
+          "ai_context": {
+            "synonyms": [
+              "real effective exchange rate",
+              "real fx rate"
+            ],
+            "examples": [
+              "What is the latest real fx rate?",
+              "Show real effective exchange rate by month over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Real effective exchange rate.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Real effective exchange rate, measured in index (2022=100).",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Real effective exchange rate across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Real effective exchange rate in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Real effective exchange rate in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Real effective exchange rate across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"reer\", \"label\": \"Real effective exchange rate\", \"short_label\": \"Real FX rate\", \"category\": \"External Sector\", \"unit\": \"index (2022=100)\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 320, \"first_period\": \"2000-01-01\", \"last_period\": \"2026-08-01\", \"last_value\": 109.7014}"
+            }
+          ]
+        },
+        {
+          "name": "fct_exports_usd",
+          "source": "sa_insights.fct_exports_usd",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Monthly value of merchandise exports, free on board. Covers 2006-01 to 2025-03.",
+          "ai_context": {
+            "synonyms": [
+              "exports (goods)",
+              "exports"
+            ],
+            "examples": [
+              "What is the latest exports?",
+              "Show exports (goods) by month over the last five years",
+              "Is exports (goods) improving?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Exports (goods).",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Exports (goods), measured in US$ m.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Exports (goods) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Exports (goods) in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Exports (goods) in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Exports (goods) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"exports_usd\", \"label\": \"Exports (goods)\", \"short_label\": \"Exports\", \"category\": \"External Sector\", \"unit\": \"US$ m\", \"frequency\": \"M\", \"provider\": \"dbnomics\", \"higher_is_better\": true, \"upstream_indicator\": {\"REF_AREA\": [\"ZA\"], \"INDICATOR\": [\"TXG_FOB_USD\"], \"FREQ\": [\"M\"]}, \"observations\": 231, \"first_period\": \"2006-01-01\", \"last_period\": \"2025-03-01\", \"last_value\": 9378.0}"
+            }
+          ]
+        },
+        {
+          "name": "fct_imports_usd",
+          "source": "sa_insights.fct_imports_usd",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Monthly value of merchandise imports, free on board. Covers 2006-01 to 2025-03.",
+          "ai_context": {
+            "synonyms": [
+              "imports (goods)",
+              "imports"
+            ],
+            "examples": [
+              "What is the latest imports?",
+              "Show imports (goods) by month over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Imports (goods).",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Imports (goods), measured in US$ m.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Imports (goods) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Imports (goods) in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Imports (goods) in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Imports (goods) across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"imports_usd\", \"label\": \"Imports (goods)\", \"short_label\": \"Imports\", \"category\": \"External Sector\", \"unit\": \"US$ m\", \"frequency\": \"M\", \"provider\": \"dbnomics\", \"higher_is_better\": null, \"upstream_indicator\": {\"REF_AREA\": [\"ZA\"], \"INDICATOR\": [\"TMG_FOB_USD\"], \"FREQ\": [\"M\"]}, \"observations\": 231, \"first_period\": \"2006-01-01\", \"last_period\": \"2025-03-01\", \"last_value\": 8081.0}"
+            }
+          ]
+        },
+        {
+          "name": "fct_current_account",
+          "source": "sa_insights.fct_current_account",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Current account balance as a share of GDP. Covers 1960-01 to 2025-01.",
+          "ai_context": {
+            "synonyms": [
+              "current account balance",
+              "current acct",
+              "trade balance",
+              "external balance"
+            ],
+            "examples": [
+              "What is the latest current acct?",
+              "Show current account balance by year over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Current account balance.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Current account balance, measured in % of GDP.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Current account balance across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Current account balance in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Current account balance in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Current account balance across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"current_account\", \"label\": \"Current account balance\", \"short_label\": \"Current acct\", \"category\": \"External Sector\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"worldbank\", \"higher_is_better\": null, \"upstream_indicator\": \"BN.CAB.XOKA.GD.ZS\", \"observations\": 66, \"first_period\": \"1960-01-01\", \"last_period\": \"2025-01-01\", \"last_value\": -0.422766754018983}"
+            }
+          ]
+        },
+        {
+          "name": "fct_equity_index",
+          "source": "sa_insights.fct_equity_index",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Share price index for the Johannesburg stock exchange. Covers 1960-01 to 2025-03.",
+          "ai_context": {
+            "synonyms": [
+              "equity price index",
+              "jse index",
+              "stock market",
+              "JSE",
+              "share prices"
+            ],
+            "examples": [
+              "What is the latest jse index?",
+              "Show equity price index by month over the last five years",
+              "Is equity price index improving?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Equity price index.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Equity price index, measured in index.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Equity price index across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Equity price index in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Equity price index in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Equity price index across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"equity_index\", \"label\": \"Equity price index\", \"short_label\": \"JSE index\", \"category\": \"Markets\", \"unit\": \"index\", \"frequency\": \"M\", \"provider\": \"dbnomics\", \"higher_is_better\": true, \"upstream_indicator\": {\"REF_AREA\": [\"ZA\"], \"INDICATOR\": [\"FPE_IX\"], \"FREQ\": [\"M\"]}, \"observations\": 783, \"first_period\": \"1960-01-01\", \"last_period\": \"2025-03-01\", \"last_value\": 267.79064694541}"
+            }
+          ]
+        },
+        {
+          "name": "fct_govt_debt",
+          "source": "sa_insights.fct_govt_debt",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Central government debt, total as a share of GDP. Covers 1990-01 to 2024-01.",
+          "ai_context": {
+            "synonyms": [
+              "gross government debt",
+              "govt debt",
+              "debt to GDP",
+              "public debt"
+            ],
+            "examples": [
+              "What is the latest govt debt?",
+              "Show gross government debt by year over the last five years",
+              "Is gross government debt rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Gross government debt.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Gross government debt, measured in % of GDP.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Gross government debt across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Gross government debt in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Gross government debt in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Gross government debt across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"govt_debt\", \"label\": \"Gross government debt\", \"short_label\": \"Govt debt\", \"category\": \"Government\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"worldbank\", \"higher_is_better\": false, \"upstream_indicator\": \"GC.DOD.TOTL.GD.ZS\", \"observations\": 21, \"first_period\": \"1990-01-01\", \"last_period\": \"2024-01-01\", \"last_value\": 82.7627080034486}"
+            }
+          ]
+        },
+        {
+          "name": "fct_population",
+          "source": "sa_insights.fct_population",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Total population, mid-year estimate. Covers 1960-01 to 2025-01.",
+          "ai_context": {
+            "synonyms": [
+              "population"
+            ],
+            "examples": [
+              "What is the latest population?",
+              "Show population by year over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Population.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Population, measured in people.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Population across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Population in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Population in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Population across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"population\", \"label\": \"Population\", \"short_label\": \"Population\", \"category\": \"Population\", \"unit\": \"people\", \"frequency\": \"A\", \"provider\": \"worldbank\", \"higher_is_better\": null, \"upstream_indicator\": \"SP.POP.TOTL\", \"observations\": 66, \"first_period\": \"1960-01-01\", \"last_period\": \"2025-01-01\", \"last_value\": 64747319.0}"
+            }
+          ]
+        },
+        {
+          "name": "fct_internet_users",
+          "source": "sa_insights.fct_internet_users",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Individuals using the internet as a share of the population. Covers 1990-01 to 2024-01.",
+          "ai_context": {
+            "synonyms": [
+              "internet users",
+              "internet use"
+            ],
+            "examples": [
+              "What is the latest internet use?",
+              "Show internet users by year over the last five years",
+              "Is internet users improving?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for Internet users.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of Internet users, measured in % of population.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean Internet users across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest Internet users in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest Internet users in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of Internet users across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"internet_users\", \"label\": \"Internet users\", \"short_label\": \"Internet use\", \"category\": \"Population\", \"unit\": \"% of population\", \"frequency\": \"A\", \"provider\": \"worldbank\", \"higher_is_better\": true, \"upstream_indicator\": \"IT.NET.USER.ZS\", \"observations\": 35, \"first_period\": \"1990-01-01\", \"last_period\": \"2024-01-01\", \"last_value\": 78.35759735}"
+            }
+          ]
+        },
+        {
+          "name": "fct_weo_growth",
+          "source": "sa_insights.fct_weo_growth",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "IMF World Economic Outlook growth path, including published projections. Covers 1980-01 to 2030-01.",
+          "ai_context": {
+            "synonyms": [
+              "imf forecast: gdp growth",
+              "gdp growth"
+            ],
+            "examples": [
+              "What is the latest gdp growth?",
+              "Show imf forecast: gdp growth by year over the last five years",
+              "Is imf forecast: gdp growth improving?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for IMF forecast: GDP growth.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of IMF forecast: GDP growth, measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean IMF forecast: GDP growth across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest IMF forecast: GDP growth in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest IMF forecast: GDP growth in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of IMF forecast: GDP growth across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"weo_growth\", \"label\": \"IMF forecast: GDP growth\", \"short_label\": \"GDP growth\", \"category\": \"Growth & Output\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": true, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"NGDP_RPCH\"]}, \"observations\": 51, \"first_period\": \"1980-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": 1.812}"
+            }
+          ]
+        },
+        {
+          "name": "fct_weo_inflation",
+          "source": "sa_insights.fct_weo_inflation",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "IMF WEO inflation path, including published projections. Covers 1980-01 to 2030-01.",
+          "ai_context": {
+            "synonyms": [
+              "imf forecast: inflation",
+              "inflation"
+            ],
+            "examples": [
+              "What is the latest inflation?",
+              "Show imf forecast: inflation by year over the last five years",
+              "Is imf forecast: inflation rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for IMF forecast: inflation.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of IMF forecast: inflation, measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean IMF forecast: inflation across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest IMF forecast: inflation in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest IMF forecast: inflation in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of IMF forecast: inflation across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"weo_inflation\", \"label\": \"IMF forecast: inflation\", \"short_label\": \"Inflation\", \"category\": \"Prices\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": false, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"PCPIPCH\"]}, \"observations\": 51, \"first_period\": \"1980-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": 4.5}"
+            }
+          ]
+        },
+        {
+          "name": "fct_weo_unemployment",
+          "source": "sa_insights.fct_weo_unemployment",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "IMF WEO unemployment path, including published projections. Covers 1980-01 to 2030-01.",
+          "ai_context": {
+            "synonyms": [
+              "imf forecast: unemployment",
+              "unemployment"
+            ],
+            "examples": [
+              "What is the latest unemployment?",
+              "Show imf forecast: unemployment by year over the last five years",
+              "Is imf forecast: unemployment rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for IMF forecast: unemployment.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of IMF forecast: unemployment, measured in %.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean IMF forecast: unemployment across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest IMF forecast: unemployment in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest IMF forecast: unemployment in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of IMF forecast: unemployment across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"weo_unemployment\", \"label\": \"IMF forecast: unemployment\", \"short_label\": \"Unemployment\", \"category\": \"Labour\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": false, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"LUR\"]}, \"observations\": 51, \"first_period\": \"1980-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": 31.405}"
+            }
+          ]
+        },
+        {
+          "name": "fct_weo_govt_balance",
+          "source": "sa_insights.fct_weo_govt_balance",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "General government net lending/borrowing as a share of GDP. Covers 2000-01 to 2030-01.",
+          "ai_context": {
+            "synonyms": [
+              "imf forecast: fiscal balance",
+              "fiscal balance"
+            ],
+            "examples": [
+              "What is the latest fiscal balance?",
+              "Show imf forecast: fiscal balance by year over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for IMF forecast: fiscal balance.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of IMF forecast: fiscal balance, measured in % of GDP.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean IMF forecast: fiscal balance across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest IMF forecast: fiscal balance in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest IMF forecast: fiscal balance in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of IMF forecast: fiscal balance across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"weo_govt_balance\", \"label\": \"IMF forecast: fiscal balance\", \"short_label\": \"Fiscal balance\", \"category\": \"Government\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": null, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"GGXCNL_NGDP\"]}, \"observations\": 31, \"first_period\": \"2000-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": -5.64}"
+            }
+          ]
+        },
+        {
+          "name": "fct_weo_govt_debt",
+          "source": "sa_insights.fct_weo_govt_debt",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "General government gross debt as a share of GDP. Covers 2000-01 to 2030-01.",
+          "ai_context": {
+            "synonyms": [
+              "imf forecast: government debt",
+              "govt debt"
+            ],
+            "examples": [
+              "What is the latest govt debt?",
+              "Show imf forecast: government debt by year over the last five years",
+              "Is imf forecast: government debt rising pressure?"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for IMF forecast: government debt.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of IMF forecast: government debt, measured in % of GDP.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean IMF forecast: government debt across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest IMF forecast: government debt in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest IMF forecast: government debt in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of IMF forecast: government debt across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"weo_govt_debt\", \"label\": \"IMF forecast: government debt\", \"short_label\": \"Govt debt\", \"category\": \"Government\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": false, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"GGXWDG_NGDP\"]}, \"observations\": 31, \"first_period\": \"2000-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": 88.732}"
+            }
+          ]
+        },
+        {
+          "name": "fct_weo_current_account",
+          "source": "sa_insights.fct_weo_current_account",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Current account balance as a share of GDP. Covers 1980-01 to 2030-01.",
+          "ai_context": {
+            "synonyms": [
+              "imf forecast: current account",
+              "current acct"
+            ],
+            "examples": [
+              "What is the latest current acct?",
+              "Show imf forecast: current account by year over the last five years"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "Observation period for IMF forecast: current account.",
+              "ai_context": {
+                "synonyms": [
+                  "date",
+                  "month",
+                  "quarter",
+                  "year"
+                ]
+              }
+            },
+            {
+              "name": "value",
+              "expression": {
+                "sql": "value"
+              },
+              "datatype": "Float",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Observed value of IMF forecast: current account, measured in % of GDP.",
+              "ai_context": {
+                "synonyms": [
+                  "reading",
+                  "observation",
+                  "level"
+                ]
+              }
+            },
+            {
+              "name": "series_key",
+              "expression": {
+                "sql": "series_key"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Stable identifier of the indicator."
+            },
+            {
+              "name": "unit",
+              "expression": {
+                "sql": "unit"
+              },
+              "datatype": "String",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Unit of measurement for the value field."
+            }
+          ],
+          "metrics": [
+            {
+              "name": "value_average",
+              "expression": {
+                "sql": "AVG(value)"
+              },
+              "datatype": "Float",
+              "description": "Mean IMF forecast: current account across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "mean",
+                  "average"
+                ]
+              }
+            },
+            {
+              "name": "value_min",
+              "expression": {
+                "sql": "MIN(value)"
+              },
+              "datatype": "Float",
+              "description": "Lowest IMF forecast: current account in the selected periods."
+            },
+            {
+              "name": "value_max",
+              "expression": {
+                "sql": "MAX(value)"
+              },
+              "datatype": "Float",
+              "description": "Highest IMF forecast: current account in the selected periods."
+            },
+            {
+              "name": "value_standard_deviation",
+              "expression": {
+                "sql": "STDDEV(value)"
+              },
+              "datatype": "Float",
+              "description": "Dispersion of IMF forecast: current account across the selected periods.",
+              "ai_context": {
+                "synonyms": [
+                  "volatility",
+                  "standard deviation"
+                ]
+              }
+            },
+            {
+              "name": "observation_count",
+              "expression": {
+                "sql": "COUNT(value)"
+              },
+              "datatype": "Integer",
+              "description": "Number of non-missing observations in the selection."
+            }
+          ],
+          "custom_extensions": [
+            {
+              "vendor_name": "SA_INSIGHTS",
+              "data": "{\"series_key\": \"weo_current_account\", \"label\": \"IMF forecast: current account\", \"short_label\": \"Current acct\", \"category\": \"External Sector\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": null, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"BCA_NGDPD\"]}, \"observations\": 51, \"first_period\": \"1980-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": -2.191}"
+            }
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "name": "fct_gdp_growth_to_dim_date_year",
+          "from": "fct_gdp_growth",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_gdp_per_capita_to_dim_date_year",
+          "from": "fct_gdp_per_capita",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_retail_sales_to_dim_date_month",
+          "from": "fct_retail_sales",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_manufacturing_to_dim_date_month",
+          "from": "fct_manufacturing",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_mining_to_dim_date_month",
+          "from": "fct_mining",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_vehicle_sales_to_dim_date_month",
+          "from": "fct_vehicle_sales",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_leading_indicator_to_dim_date_month",
+          "from": "fct_leading_indicator",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_real_gdp_q_to_dim_date_quarter",
+          "from": "fct_real_gdp_q",
+          "to": "dim_date_quarter",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_cpi_yoy_to_dim_date_month",
+          "from": "fct_cpi_yoy",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_ppi_yoy_to_dim_date_month",
+          "from": "fct_ppi_yoy",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_cpi_index_to_dim_date_month",
+          "from": "fct_cpi_index",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_inflation_annual_to_dim_date_year",
+          "from": "fct_inflation_annual",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_unemployment_to_dim_date_year",
+          "from": "fct_unemployment",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_lf_participation_to_dim_date_year",
+          "from": "fct_lf_participation",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_policy_rate_to_dim_date_month",
+          "from": "fct_policy_rate",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_lending_rate_to_dim_date_month",
+          "from": "fct_lending_rate",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_bond_yield_to_dim_date_month",
+          "from": "fct_bond_yield",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_usd_zar_to_dim_date_month",
+          "from": "fct_usd_zar",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_reer_to_dim_date_month",
+          "from": "fct_reer",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_exports_usd_to_dim_date_month",
+          "from": "fct_exports_usd",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_imports_usd_to_dim_date_month",
+          "from": "fct_imports_usd",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_current_account_to_dim_date_year",
+          "from": "fct_current_account",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_equity_index_to_dim_date_month",
+          "from": "fct_equity_index",
+          "to": "dim_date_month",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_govt_debt_to_dim_date_year",
+          "from": "fct_govt_debt",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_population_to_dim_date_year",
+          "from": "fct_population",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_internet_users_to_dim_date_year",
+          "from": "fct_internet_users",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_weo_growth_to_dim_date_year",
+          "from": "fct_weo_growth",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_weo_inflation_to_dim_date_year",
+          "from": "fct_weo_inflation",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_weo_unemployment_to_dim_date_year",
+          "from": "fct_weo_unemployment",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_weo_govt_balance_to_dim_date_year",
+          "from": "fct_weo_govt_balance",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_weo_govt_debt_to_dim_date_year",
+          "from": "fct_weo_govt_debt",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        },
+        {
+          "name": "fct_weo_current_account_to_dim_date_year",
+          "from": "fct_weo_current_account",
+          "to": "dim_date_year",
+          "from_columns": [
+            "period"
+          ],
+          "to_columns": [
+            "period"
+          ],
+          "ai_context": {
+            "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+          }
+        }
+      ],
+      "metrics": [
+        {
+          "name": "real_policy_rate",
+          "expression": {
+            "sql": "AVG(fct_policy_rate.value) - AVG(fct_cpi_yoy.value)"
+          },
+          "datatype": "Float",
+          "description": "The repo rate less consumer inflation, in percentage points. Positive values mean monetary policy is restrictive in real terms.",
+          "ai_context": {
+            "synonyms": [
+              "real repo rate",
+              "real interest rate"
+            ],
+            "examples": [
+              "Is monetary policy tight in real terms?"
+            ]
+          }
+        },
+        {
+          "name": "credit_spread",
+          "expression": {
+            "sql": "AVG(fct_lending_rate.value) - AVG(fct_policy_rate.value)"
+          },
+          "datatype": "Float",
+          "description": "Bank lending rate less the policy rate, in percentage points.",
+          "ai_context": {
+            "synonyms": [
+              "lending spread",
+              "bank margin"
+            ]
+          }
+        },
+        {
+          "name": "real_bond_yield",
+          "expression": {
+            "sql": "AVG(fct_bond_yield.value) - AVG(fct_cpi_yoy.value)"
+          },
+          "datatype": "Float",
+          "description": "Long government bond yield less consumer inflation, in percentage points.",
+          "ai_context": {
+            "synonyms": [
+              "real yield"
+            ]
+          }
+        },
+        {
+          "name": "trade_balance",
+          "expression": {
+            "sql": "AVG(fct_exports_usd.value) - AVG(fct_imports_usd.value)"
+          },
+          "datatype": "Float",
+          "description": "Goods exports less goods imports, in millions of US dollars.",
+          "ai_context": {
+            "synonyms": [
+              "net exports",
+              "trade surplus",
+              "trade deficit"
+            ],
+            "examples": [
+              "Does South Africa run a trade surplus?"
+            ]
+          }
+        },
+        {
+          "name": "indicator_count",
+          "expression": {
+            "sql": "COUNT(DISTINCT fct_bond_yield.series_key)"
+          },
+          "datatype": "Integer",
+          "description": "Number of distinct indicators represented in the model. Per-dataset counts are available as each fact's observation_count metric."
+        }
+      ],
+      "custom_extensions": [
+        {
+          "vendor_name": "SA_INSIGHTS",
+          "data": "{\"generated_at\": \"2026-11-07T12:12:39+00:00\", \"document_version\": \"0.1.1\", \"series_count\": 32, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+# Foundation-model extras.
+#
+# The dashboard runs fine without these — chronos_fm degrades to a no-op and
+# the classical model pool is used unchanged. Install this file only when you
+# want the Apache Chronos-Bolt model competing in the forecast lab and when
+# precomputing forecasts for the static site.
+#
+#   pip install -r requirements-fm.txt
+#
+# The CPU index avoids pulling ~2.5 GB of CUDA libraries on a machine that has
+# no GPU. If you have a CUDA device, install torch from the default index
+# instead and remove --extra-index-url below.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+-r requirements.txt
+
+torch>=2.2
+chronos-forecasting>=2.0

@@ -1,0 +1,108 @@
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# Testing / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# ---------------------------------------------------------------------------
+# Project runtime artefacts
+# ---------------------------------------------------------------------------
+# Local log and scratch output
+*.log
+streamlit.log
+.tmp_schema/
+tmp/
+scratch/
+
+# Locally cached upstream data. The dashboard re-fetches on demand; committing
+# cache blobs would bloat the repo and go stale silently.
+data/cache/
+
+# Streamlit's local secrets file must never be committed
+.streamlit/secrets.toml
+
+# ---------------------------------------------------------------------------
+# Editors / OS
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------------------
+# AI assistant context and agent workspace
+#
+# These directories hold local prompts, instructions, agent definitions and
+# chat/tool state that are specific to one machine and one assistant session.
+# They are not part of the application and must not be published.
+# ---------------------------------------------------------------------------
+.copilot/
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+.github/chatmodes/
+.github/agents/
+.claude/
+.claude-settings.json
+CLAUDE.md
+AGENTS.md
+.agents/
+.cursor/
+.cursorrules
+.windsurf/
+.aider*
+.continue/
+.cline/
+.roo/
+.amazonq/
+.kiro/
+.codeium/
+.tabnine/
+*.copilot.md
+*.prompt.md
+*.chatmode.md
+*.instructions.md
+
+# AI chat / session history and tool state
+chat-history/
+chat_history/
+last_chat_history_*.md
+.copilot-chat/
+*.ipynb_checkpoints/
+
+# Local model / agent caches
+.ollama/
+.llm/
+.embedding_cache/
+vector_store/
+.chroma/
