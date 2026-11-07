@@ -11,15 +11,19 @@
 x-common-env: &common-env
   DATA_DIR: /data
   LOG_LEVEL: INFO
-  # Uses `-` not `:-` on purpose: an explicitly empty value must stay empty so
-  # it disables tracking. With `:-`, MLFLOW_TRACKING_URI="" would silently fall
-  # back to the default and try to reach a server that is not running.
+  # Internal address — what the SDK writes to, resolvable only inside the
+  # compose network. Uses `-` not `:-` so an explicitly empty value stays empty
+  # and disables tracking; with `:-`, "" would silently fall back to the default.
   MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI-http://mlflow:5000}
+  # External address — what a browser opens. Separate variable because the
+  # service name above is not resolvable from the host, which made the sidebar
+  # link permanently dead.
+  MLFLOW_UI_URL: ${MLFLOW_UI_URL-http://localhost:5000}
   MLFLOW_EXPERIMENT: sa-insights-forecasting
   MLFLOW_DISABLE_AGENT_HINT: "1"
-  # Set to 0 for a lean deployment without the foundation model.
+  # 1 by default: the foundation model is part of the product, not an extra.
   SA_INSIGHTS_FM: ${SA_INSIGHTS_FM:-1}
-  # Read-only Hugging Face token, needed only to raise rate limits when
+  # Read-only Hugging Face token, only needed to raise rate limits when
   # downloading Chronos weights. Never bake this into the image.
   HF_TOKEN: ${HF_TOKEN:-}
 
@@ -30,9 +34,7 @@ services:
       context: .
       target: runtime
       args:
-        # Default 0: a lean image that starts fast. Set SA_INSIGHTS_FM=1 to
-        # build with Chronos-Bolt (adds ~200 MB of torch + CUDA-adjacent deps).
-        WITH_FM: ${SA_INSIGHTS_FM:-0}
+        WITH_FM: ${SA_INSIGHTS_FM:-1}
     image: sa-insights:local
     ports:
       - "${APP_PORT:-8501}:8501"
@@ -40,6 +42,9 @@ services:
     volumes:
       - sa-data:/data
     restart: unless-stopped
+    depends_on:
+      mlflow:
+        condition: service_healthy
     # Streamlit ships a health endpoint; probe that rather than the root page.
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8501/_stcore/health"]
@@ -60,6 +65,8 @@ services:
     depends_on:
       app:
         condition: service_started
+      mlflow:
+        condition: service_healthy
     command: ["python", "-m", "sa_insights.scheduler"]
     environment:
       <<: *common-env
@@ -85,23 +92,48 @@ services:
       start_period: 30s
 
   # ----------------------------------------------------------------- MLflow
-  # Opt in with: docker compose --profile tracking up -d
+  #
+  # No `profiles:` — tracking is part of the product, so it starts with
+  # `docker compose up`. Previously it sat behind an opt-in profile, which meant
+  # the default stack ran the app against a server that was never started.
+  #
+  # Runs from OUR image, not ghcr.io/mlflow/mlflow, so client and server
+  # versions cannot diverge (the pinned upstream image was v3.1.4 while the
+  # client is v3.18 — a guaranteed API skew).
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v3.1.4
-    profiles: ["tracking"]
-    command: >
-      mlflow server
-      --host 0.0.0.0
-      --port 5000
-      --backend-store-uri sqlite:////mlflow/mlflow.db
-      --default-artifact-root /mlflow/artifacts
-      --allowed-hosts "*"
-      --cors-allowed-origins "*"
+    image: sa-insights:local
+    # No `depends_on`: this service reuses the image `app` *builds*, but image
+    # inheritance is a build-time fact, not a runtime one. Waiting on `app` here
+    # while `app` waits on mlflow's health creates the cycle
+    # (app -> mlflow -> app). Compose builds `app` first regardless.
+    #
+    # Runs as root: the named volume is created root-owned, and the image's
+    # default `app` user (uid 1000) cannot create `/mlflow/mlflow.db` — which
+    # surfaces as "sqlite3.OperationalError: unable to open database file" and
+    # an endlessly retrying, permanently unhealthy container. This is an
+    # internal service on a private network with no host mounts, so root here
+    # is a contained trade rather than a blanket relaxation.
+    user: "0:0"
+    command:
+      - mlflow
+      - server
+      - --host=0.0.0.0
+      - --port=5000
+      - --backend-store-uri=sqlite:////mlflow/mlflow.db
+      - --default-artifact-root=/mlflow/artifacts
+      - --allowed-hosts=*
+      - --cors-allowed-origins=*
     ports:
       - "${MLFLOW_PORT:-5000}:5000"
     volumes:
       - mlflow-data:/mlflow
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
 
 volumes:
   sa-data:

@@ -34,6 +34,11 @@ dependencies = [
 
 [project.optional-dependencies]
 # Chronos-Bolt. Install with: uv sync --extra fm
+#
+# torch resolves to a CPU-only wheel via [tool.uv.sources] below. The project
+# only ever infers on CPU, so the nvidia-* packages PyPI ships alongside torch
+# are ~2.5 GB of dead weight — and on a GPU-less host they are a classic source
+# of import failures that only appear at runtime.
 fm = [
     "torch>=2.2",
     "chronos-forecasting>=2.0",
@@ -42,7 +47,23 @@ fm = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",
+    "pyflakes>=3.0",
 ]
+
+# ---------------------------------------------------------------------------
+# Package sources
+# ---------------------------------------------------------------------------
+# `explicit = true` keeps this index out of the general resolution path: only
+# packages named in [tool.uv.sources] are fetched from it. Without `explicit`,
+# PyPI still wins for `torch` (its version satisfies the constraint) and the
+# CUDA stack comes straight back.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
 
 [project.scripts]
 sa-collect = "sa_insights.cli:collect_main"

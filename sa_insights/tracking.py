@@ -23,10 +23,20 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import urllib.error
+import urllib.request
 from typing import Any
 
-# Read once at import; a missing value disables tracking entirely.
+# The address the SDK writes to. Inside Docker this is a service name such as
+# http://mlflow:5000, which resolves on the compose network but NOT in a user's
+# browser.
 TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "").strip()
+
+# The address a *browser* should open. Deliberately separate: rendering
+# TRACKING_URI as a clickable link produced a permanently dead link, because
+# "mlflow" is not a hostname the host machine can resolve.
+UI_URL = os.getenv("MLFLOW_UI_URL", "").strip()
+
 EXPERIMENT = os.getenv("MLFLOW_EXPERIMENT", "sa-insights-forecasting")
 
 _disabled_reason: str | None = None
@@ -57,13 +67,39 @@ def enabled() -> bool:
 
 
 def status() -> dict:
-    """Human-readable tracking state, surfaced in the dashboard sidebar."""
+    """Human-readable tracking state, surfaced in the dashboard sidebar.
+
+    ``ui_url`` is separate from ``tracking_uri``: the former is what a browser
+    can open, the latter is what the SDK writes to (often a Docker service name
+    that no browser resolves).
+    """
     return {
         "enabled": enabled(),
         "tracking_uri": TRACKING_URI or None,
+        "ui_url": UI_URL or None,
         "experiment": EXPERIMENT if enabled() else None,
         "reason": _disabled_reason,
     }
+
+
+def probe(timeout: float = 2.0) -> bool | None:
+    """Is the tracking server actually reachable right now?
+
+    Returns None when tracking is not configured, True/False otherwise.
+
+    Without this the sidebar showed a green "MLflow tracking" chip purely
+    because a URI was *configured*, even when nothing was listening — the
+    difference between "configured" and "working" was invisible to the user.
+    """
+    if not TRACKING_URI:
+        return None
+
+    url = TRACKING_URI.rstrip("/") + "/health"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            return 200 <= getattr(response, "status", 0) < 300
+    except (urllib.error.URLError, OSError, ValueError):
+        return False
 
 
 def log_forecast_run(

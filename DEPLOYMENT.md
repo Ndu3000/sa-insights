@@ -35,21 +35,22 @@ those need the container.
 
 `app` serves the UI and generates downloads. `worker` owns the refresh schedule.
 They are separate so a long foundation-model refresh cannot block the UI and a
-crash in one does not take down the other. `mlflow` is optional.
+crash in one does not take down the other. `mlflow` starts by default — tracking
+is part of the product, not an optional extra.
 
 ### Quick start
 
 ```bash
-# app + worker, no foundation model (fast, ~300 MB image)
-SA_INSIGHTS_FM=0 docker compose up -d --build
+# full stack: app + worker + MLflow, with Chronos-Bolt
+HF_TOKEN=hf_xxx docker compose up -d --build
 
-# full stack with Chronos-Bolt and MLflow
-SA_INSIGHTS_FM=1 HF_TOKEN=hf_xxx docker compose --profile tracking up -d --build
+# lean variant without the foundation model (faster build, smaller image)
+SA_INSIGHTS_FM=0 docker compose up -d --build
 ```
 
 Then:
 - Dashboard — <http://localhost:8501>
-- MLflow — <http://localhost:5000> (with the `tracking` profile)
+- MLflow — <http://localhost:5000>
 
 On first start the app detects an empty warehouse and runs an initial refresh
 before rendering, so it never opens on a blank page.
@@ -179,7 +180,8 @@ uv run python -m sa_insights.scheduler --once
 | `HF_TOKEN` | — | Read-only Hugging Face token; raises rate limits for the model download |
 | `DATA_DIR` | `./data` | Where the DuckDB file lives |
 | `SA_DB_PATH` | `$DATA_DIR/sa_insights.duckdb` | Explicit database path |
-| `MLFLOW_TRACKING_URI` | — | Enables tracking when set |
+| `MLFLOW_TRACKING_URI` | `http://mlflow:5000` | SDK write target — Docker service name, not browser-reachable |
+| `MLFLOW_UI_URL` | `http://localhost:5000` | Browser-facing MLflow link shown in the sidebar |
 | `MLFLOW_EXPERIMENT` | `sa-insights-forecasting` | Experiment name |
 | `REFRESH_CRON` | `15 5 * * *` | Worker schedule, UTC |
 | `APP_PORT` / `MLFLOW_PORT` | `8501` / `5000` | Host port mapping |

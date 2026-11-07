@@ -182,18 +182,27 @@ def sidebar(summary: dict, meta: pd.DataFrame, stored_keys: set[str]):
         st.markdown(ui.chips([(fm_text, fm_cls)]), unsafe_allow_html=True)
         st.caption(fm_hint)
 
-        # Tracking status: whether MLflow is receiving runs.
+        # Tracking status. Distinguishes three states rather than two, because
+        # "configured" and "working" are different things: the old code showed a
+        # green chip whenever a URI was set, even with no server listening, and
+        # rendered the internal Docker hostname as a clickable link that could
+        # never resolve from a browser.
         tr = tracking.status()
-        if tr["enabled"]:
-            st.markdown(
-                ui.chips([("MLflow tracking", "ok")]), unsafe_allow_html=True
-            )
-            st.caption(tr["tracking_uri"])
-        else:
-            st.markdown(
-                ui.chips([("tracking off", "")]), unsafe_allow_html=True
-            )
+        if not tr["enabled"]:
+            st.markdown(ui.chips([("tracking off", "")]), unsafe_allow_html=True)
             st.caption(tr["reason"] or "")
+        elif tracking.probe() is False:
+            st.markdown(
+                ui.chips([("tracking unreachable", "fail")]), unsafe_allow_html=True
+            )
+            st.caption(f"cannot reach {tr['tracking_uri']}")
+        else:
+            st.markdown(ui.chips([("MLflow tracking", "ok")]), unsafe_allow_html=True)
+            if tr["ui_url"]:
+                st.link_button("Open MLflow", tr["ui_url"], use_container_width=True)
+            else:
+                st.caption(f"logging to {tr['tracking_uri']}")
+                st.caption("set MLFLOW_UI_URL for a browser link")
 
         if st.button("↻ Refresh all data", use_container_width=True):
             with st.spinner("Fetching upstream data and refitting models…"):

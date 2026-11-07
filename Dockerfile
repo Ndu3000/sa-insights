@@ -46,18 +46,31 @@ WORKDIR /app
 # ---------------------------------------------------------------------------
 FROM base AS deps
 
-ARG WITH_FM=0
+ARG WITH_FM=1
 
 COPY pyproject.toml uv.lock ./
 
-# torch from the CPU index: the default wheel pulls ~2.5 GB of CUDA libraries
-# that are useless in a CPU container.
+# No --extra-index-url here on purpose. The CPU index is declared in
+# pyproject.toml ([tool.uv.index], explicit) and pinned in uv.lock, so
+# resolution happens once and the image cannot disagree with the lockfile.
+# Passing --extra-index-url instead is what silently re-admitted the ~2.5 GB
+# CUDA stack: it is additive, so PyPI still won for `torch`.
 RUN --mount=type=cache,target=/root/.cache/uv \
     if [ "$WITH_FM" = "1" ]; then \
-        uv sync --frozen --no-install-project --no-dev --extra fm \
-            --extra-index-url https://download.pytorch.org/whl/cpu ; \
+        uv sync --frozen --no-install-project --no-dev --extra fm ; \
     else \
         uv sync --frozen --no-install-project --no-dev ; \
+    fi
+
+# Fail the build, not the dashboard.
+#
+# Every failure mode this project hit — the flag defaulting to 0, the extra
+# index losing to PyPI, the model simply absent — produced an image that built
+# cleanly and only surfaced as "Foundation model unavailable" in the UI days
+# later. A one-line import converts that whole class into a failed build.
+RUN if [ "$WITH_FM" = "1" ]; then \
+        /app/.venv/bin/python -c \
+          "import torch, chronos; print('torch', torch.__version__, '| chronos OK')" ; \
     fi
 
 
@@ -66,7 +79,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ---------------------------------------------------------------------------
 FROM base AS runtime
 
-ARG WITH_FM=0
+ARG WITH_FM=1
 LABEL org.opencontainers.image.title="sa-insights" \
       org.opencontainers.image.description="South African macroeconomic dashboard with forecasting and model tracking" \
       org.opencontainers.image.licenses="MIT" \
