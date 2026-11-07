@@ -1,0 +1,95 @@
+name: Refresh data and deploy Pages
+
+# Keeps the published dashboard current. On a schedule this re-fetches every
+# source, recomputes forecasts, regenerates the semantic model and Power BI
+# bundle, and redeploys the site — so the "always refreshable" promise is
+# maintained without anyone running anything locally.
+#
+# The foundation model cannot run in the browser, so Chronos-Bolt executes here
+# and the site ships only its numeric output.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 05:15 UTC daily (07:15 SAST) — after SARB and Stats SA overnight updates.
+    - cron: "15 5 * * *"
+  workflow_dispatch:
+    inputs:
+      skip_foundation_model:
+        description: "Skip the foundation model (faster build)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let a scheduled refresh and a push race each other.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-fm.txt
+
+      # Torch CPU only: the default wheel drags in ~2.5 GB of CUDA libraries
+      # that are useless on a GitHub runner.
+      - name: Install dependencies
+        if: ${{ !inputs.skip_foundation_model }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-fm.txt
+
+      - name: Install dependencies (no foundation model)
+        if: ${{ inputs.skip_foundation_model }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # The cache directory is gitignored, so CI always starts clean and pulls
+      # everything fresh from the upstream APIs.
+      - name: Collect data from upstream sources
+        run: python scripts/collect.py
+
+      - name: Verify data freshness
+        run: python scripts/check_freshness.py
+
+      - name: Precompute forecasts
+        env:
+          SA_INSIGHTS_FM: ${{ inputs.skip_foundation_model && '0' || '1' }}
+        run: python scripts/export_forecasts.py
+
+      - name: Regenerate semantic model
+        run: python scripts/build_semantic_model.py
+
+      - name: Regenerate Power BI bundle
+        run: python scripts/export_powerbi.py
+
+      - name: Build static site
+        run: python scripts/export_pages.py
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
