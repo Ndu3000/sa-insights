@@ -6,6 +6,8 @@ model.
 
 **Live data · automated model selection · shareable semantic layer**
 
+**→ [ndu3000.github.io/sa-insights](https://ndu3000.github.io/sa-insights/)**
+
 ---
 
 ## What it does
