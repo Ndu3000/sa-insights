@@ -114,3 +114,6 @@ data/*.lock
 .mlflow/
 mlruns/
 *.log
+
+# host-side scratch used when rendering docs from the container warehouse
+.publish-tmp/
