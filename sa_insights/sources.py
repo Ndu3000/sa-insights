@@ -25,6 +25,11 @@ FRED_CSV = "https://fred.stlouisfed.org/graph/fredgraph.csv"
 # updated within days of each release — unlike the DBnomics IMF mirror, which
 # lags by a year or more.
 SARB_API = "https://custom.resbank.co.za/SarbWebApi"
+# The IMF DataMapper API. Unlike the DBnomics WEO mirror (frozen at an old
+# vintage) and the retired IMF SDMX-JSON service, this is live and carries the
+# current World Economic Outlook vintage, including projections several years
+# ahead.
+IMF_DATAMAPPER = "https://www.imf.org/external/datamapper/api/v1"
 
 CACHE_DIR = Path(__file__).resolve().parent.parent / "data" / "cache"
 RAW_DIR = CACHE_DIR / "raw"
@@ -50,8 +55,15 @@ def _get(
     retries: int = 3,
     timeout: int = 45,
     expect_json: bool = True,
+    headers: dict | None = None,
 ):
-    """GET with bounded exponential backoff. Raises FetchError on failure."""
+    """GET with bounded exponential backoff. Raises FetchError on failure.
+
+    Hosts differ on what they accept: FRED's edge throttles anything claiming to
+    be a browser, while the IMF DataMapper rejects a custom user-agent outright
+    but serves the requests library default. Callers that know their host pass
+    explicit `headers`; the default is the project user-agent.
+    """
     last: Exception | None = None
     for attempt in range(retries):
         try:
@@ -59,7 +71,7 @@ def _get(
                 url,
                 params=params,
                 timeout=timeout,
-                headers={"User-Agent": USER_AGENT, "Accept": "*/*"},
+                headers=headers if headers is not None else {"User-Agent": USER_AGENT, "Accept": "*/*"},
             )
             if resp.status_code == 429:
                 time.sleep(2 * (attempt + 1))
@@ -236,6 +248,76 @@ def _fetch_fred(spec: SeriesSpec) -> pd.Series:
     return out
 
 
+def _fetch_imf_datamapper(spec: SeriesSpec) -> pd.Series:
+    """Fetch a series from the IMF DataMapper API.
+
+    Payload shape::
+
+        {"values": {"<INDICATOR>": {"ZAF": {"2024": 0.5, "2025": 1.1, ...},
+                                    "SDN": {...}, ...}}}
+
+    Some indicators honour the ``/{indicator}/{country}`` path and return just
+    one country; others ignore it and return all ~229. Both shapes are handled
+    by always looking up the country key rather than assuming a single block.
+
+    Values include published projections, so the series legitimately extends
+    into the future. Those are kept — they are the IMF's own outlook, which the
+    dashboard shows as a benchmark rather than as observed data.
+    """
+    indicator = spec.fetch["indicator"]
+    country = spec.fetch.get("country", "ZAF")
+    url = f"{IMF_DATAMAPPER}/{indicator}/{country}"
+
+    # The IMF API rejects custom user-agents with a 403 but serves the requests
+    # library default, so this call deliberately sends no User-Agent header.
+    last: Exception | None = None
+    payload = None
+    for attempt in range(4):
+        try:
+            payload = _get(url, timeout=60, retries=1, headers={"Accept": "*/*"})
+            break
+        except FetchError as exc:
+            last = exc
+            time.sleep(2.0 * (attempt + 1))
+    if payload is None:
+        raise FetchError(f"IMF {indicator}/{country}: {last}")
+
+    if not isinstance(payload, dict):
+        raise FetchError(f"IMF {indicator}: unexpected payload")
+
+    by_country = payload.get("values", {}).get(indicator, {})
+    if not isinstance(by_country, dict) or not by_country:
+        raise FetchError(f"IMF {indicator}: no values returned")
+
+    # The response may be {ZAF: {...}} or {SDN: {...}, ZAF: {...}, ...}.
+    block = by_country.get(country)
+    if block is None and len(by_country) == 1:
+        block = next(iter(by_country.values()))
+    if not isinstance(block, dict) or not block:
+        raise FetchError(f"IMF {indicator}: no data for {country}")
+
+    stamps: list[pd.Timestamp] = []
+    values: list[float] = []
+    for period, raw in block.items():
+        if raw is None:
+            continue
+        try:
+            year = int(str(period)[:4])
+            value = float(raw)
+        except (TypeError, ValueError):
+            continue
+        stamps.append(pd.Timestamp(year=year, month=1, day=1))
+        values.append(value)
+
+    if not stamps:
+        raise FetchError(f"IMF {indicator}/{country}: no numeric observations")
+
+    series = pd.Series(values, index=pd.DatetimeIndex(stamps), dtype="float64")
+    series = series[~series.index.duplicated(keep="last")].sort_index()
+    series.name = None
+    return series
+
+
 def _fetch_sarb(spec: SeriesSpec) -> pd.Series:
     """Fetch a timeseries from the official SARB Web API.
 
@@ -313,6 +395,7 @@ _FETCHERS = {
     "worldbank": _fetch_worldbank,
     "fred": _fetch_fred,
     "sarb": _fetch_sarb,
+    "imf": _fetch_imf_datamapper,
 }
 
 

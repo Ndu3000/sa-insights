@@ -112,6 +112,27 @@ def _sarb(key, label, code, unit, category, description, freq="M", start=None, *
     )
 
 
+def _imf(key, label, indicator, unit, category, description, **kw):
+    """Series from the IMF DataMapper API.
+
+    Preferred over the DBnomics WEO mirror: DataMapper always carries the
+    current World Economic Outlook vintage, whereas the mirror was frozen at an
+    old release. Values include the IMF's own projections, so the series can
+    extend several years past the present.
+    """
+    return SeriesSpec(
+        key=key,
+        label=label,
+        unit=unit,
+        frequency="A",
+        category=category,
+        description=description,
+        provider="imf",
+        fetch={"indicator": indicator, "country": "ZAF"},
+        **kw,
+    )
+
+
 def _weo(key, label, subject, unit_code, unit, category, description, **kw):
     return SeriesSpec(
         key=key,
@@ -392,69 +413,86 @@ SERIES: list[SeriesSpec] = [
         higher_is_better=True,
         forecast=False,
     ),
-    # ------------------------------------------------ IMF WEO incl. forecasts
-    _weo(
+    # ------------------------------- IMF DataMapper: current WEO vintage
+    # These carry the IMF's own projections to the mid-2030s, so they also give
+    # the dashboard an official benchmark to compare its forecasts against.
+    _imf(
         "weo_growth",
-        "IMF forecast: GDP growth",
+        "IMF: GDP growth",
         "NGDP_RPCH",
-        "pcent",
         "%",
         "Growth & Output",
-        "IMF World Economic Outlook growth path, including published projections.",
+        "IMF World Economic Outlook real GDP growth, including published projections.",
         higher_is_better=True,
         forecast=False,
     ),
-    _weo(
+    _imf(
         "weo_inflation",
-        "IMF forecast: inflation",
+        "IMF: inflation",
         "PCPIPCH",
-        "pcent",
         "%",
         "Prices",
-        "IMF WEO inflation path, including published projections.",
+        "IMF average consumer price inflation, including published projections.",
         higher_is_better=False,
         forecast=False,
     ),
-    _weo(
+    _imf(
         "weo_unemployment",
-        "IMF forecast: unemployment",
+        "IMF: unemployment",
         "LUR",
-        "pcent",
         "%",
         "Labour",
-        "IMF WEO unemployment path, including published projections.",
+        "IMF unemployment rate, including published projections.",
         higher_is_better=False,
         forecast=False,
     ),
-    _weo(
+    _imf(
         "weo_govt_balance",
-        "IMF forecast: fiscal balance",
+        "IMF: fiscal balance",
         "GGXCNL_NGDP",
-        "pcent",
         "% of GDP",
         "Government",
         "General government net lending/borrowing as a share of GDP.",
         forecast=False,
     ),
-    _weo(
+    _imf(
         "weo_govt_debt",
-        "IMF forecast: government debt",
+        "IMF: government debt",
         "GGXWDG_NGDP",
-        "pcent",
         "% of GDP",
         "Government",
         "General government gross debt as a share of GDP.",
         higher_is_better=False,
         forecast=False,
     ),
-    _weo(
+    _imf(
         "weo_current_account",
-        "IMF forecast: current account",
+        "IMF: current account",
         "BCA_NGDPD",
-        "pcent",
         "% of GDP",
         "External Sector",
         "Current account balance as a share of GDP.",
+        forecast=False,
+    ),
+    _imf(
+        "weo_gdp_per_capita",
+        "IMF: GDP per capita",
+        "NGDPDPC",
+        "US$",
+        "Growth & Output",
+        "GDP per capita at current prices, including projections.",
+        decimals=0,
+        higher_is_better=True,
+        forecast=False,
+    ),
+    _imf(
+        "imf_population",
+        "IMF: population",
+        "LP",
+        "million",
+        "Population",
+        "Population in millions, including projections.",
+        decimals=2,
         forecast=False,
     ),
 ]

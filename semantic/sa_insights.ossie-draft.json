@@ -3999,16 +3999,16 @@
           "period"
         ]
       ],
-      "description": "IMF World Economic Outlook growth path, including published projections. Covers 1980-01 to 2030-01.",
+      "description": "IMF World Economic Outlook real GDP growth, including published projections. Covers 1980-01 to 2031-01.",
       "ai_context": {
         "synonyms": [
-          "imf forecast: gdp growth",
+          "imf: gdp growth",
           "gdp growth"
         ],
         "examples": [
           "What is the latest gdp growth?",
-          "Show imf forecast: gdp growth by year over the last five years",
-          "Is imf forecast: gdp growth improving?"
+          "Show imf: gdp growth by year over the last five years",
+          "Is imf: gdp growth improving?"
         ]
       },
       "fields": [
@@ -4021,7 +4021,7 @@
           "dimension": {
             "is_time": true
           },
-          "description": "Observation period for IMF forecast: GDP growth.",
+          "description": "Observation period for IMF: GDP growth.",
           "ai_context": {
             "synonyms": [
               "date",
@@ -4040,7 +4040,7 @@
           "dimension": {
             "is_time": false
           },
-          "description": "Observed value of IMF forecast: GDP growth, measured in %.",
+          "description": "Observed value of IMF: GDP growth, measured in %.",
           "ai_context": {
             "synonyms": [
               "reading",
@@ -4079,7 +4079,7 @@
             "sql": "AVG(value)"
           },
           "datatype": "Float",
-          "description": "Mean IMF forecast: GDP growth across the selected periods.",
+          "description": "Mean IMF: GDP growth across the selected periods.",
           "ai_context": {
             "synonyms": [
               "mean",
@@ -4093,7 +4093,7 @@
             "sql": "MIN(value)"
           },
           "datatype": "Float",
-          "description": "Lowest IMF forecast: GDP growth in the selected periods."
+          "description": "Lowest IMF: GDP growth in the selected periods."
         },
         {
           "name": "value_max",
@@ -4101,7 +4101,7 @@
             "sql": "MAX(value)"
           },
           "datatype": "Float",
-          "description": "Highest IMF forecast: GDP growth in the selected periods."
+          "description": "Highest IMF: GDP growth in the selected periods."
         },
         {
           "name": "value_standard_deviation",
@@ -4109,7 +4109,7 @@
             "sql": "STDDEV(value)"
           },
           "datatype": "Float",
-          "description": "Dispersion of IMF forecast: GDP growth across the selected periods.",
+          "description": "Dispersion of IMF: GDP growth across the selected periods.",
           "ai_context": {
             "synonyms": [
               "volatility",
@@ -4129,7 +4129,7 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"series_key\": \"weo_growth\", \"label\": \"IMF forecast: GDP growth\", \"short_label\": \"GDP growth\", \"category\": \"Growth & Output\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": true, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"NGDP_RPCH\"]}, \"observations\": 51, \"first_period\": \"1980-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": 1.812}"
+          "data": "{\"series_key\": \"weo_growth\", \"label\": \"IMF: GDP growth\", \"short_label\": \"GDP growth\", \"category\": \"Growth & Output\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"imf\", \"higher_is_better\": true, \"upstream_indicator\": \"NGDP_RPCH\", \"observations\": 52, \"first_period\": \"1980-01-01\", \"last_period\": \"2031-01-01\", \"last_value\": 1.8}"
         }
       ]
     },
@@ -4144,16 +4144,16 @@
           "period"
         ]
       ],
-      "description": "IMF WEO inflation path, including published projections. Covers 1980-01 to 2030-01.",
+      "description": "IMF average consumer price inflation, including published projections. Covers 1980-01 to 2031-01.",
       "ai_context": {
         "synonyms": [
-          "imf forecast: inflation",
+          "imf: inflation",
           "inflation"
         ],
         "examples": [
           "What is the latest inflation?",
-          "Show imf forecast: inflation by year over the last five years",
-          "Is imf forecast: inflation rising pressure?"
+          "Show imf: inflation by year over the last five years",
+          "Is imf: inflation rising pressure?"
         ]
       },
       "fields": [
@@ -4166,7 +4166,7 @@
           "dimension": {
             "is_time": true
           },
-          "description": "Observation period for IMF forecast: inflation.",
+          "description": "Observation period for IMF: inflation.",
           "ai_context": {
             "synonyms": [
               "date",
@@ -4185,7 +4185,7 @@
           "dimension": {
             "is_time": false
           },
-          "description": "Observed value of IMF forecast: inflation, measured in %.",
+          "description": "Observed value of IMF: inflation, measured in %.",
           "ai_context": {
             "synonyms": [
               "reading",
@@ -4224,7 +4224,7 @@
             "sql": "AVG(value)"
           },
           "datatype": "Float",
-          "description": "Mean IMF forecast: inflation across the selected periods.",
+          "description": "Mean IMF: inflation across the selected periods.",
           "ai_context": {
             "synonyms": [
               "mean",
@@ -4238,7 +4238,7 @@
             "sql": "MIN(value)"
           },
           "datatype": "Float",
-          "description": "Lowest IMF forecast: inflation in the selected periods."
+          "description": "Lowest IMF: inflation in the selected periods."
         },
         {
           "name": "value_max",
@@ -4246,7 +4246,7 @@
             "sql": "MAX(value)"
           },
           "datatype": "Float",
-          "description": "Highest IMF forecast: inflation in the selected periods."
+          "description": "Highest IMF: inflation in the selected periods."
         },
         {
           "name": "value_standard_deviation",
@@ -4254,7 +4254,7 @@
             "sql": "STDDEV(value)"
           },
           "datatype": "Float",
-          "description": "Dispersion of IMF forecast: inflation across the selected periods.",
+          "description": "Dispersion of IMF: inflation across the selected periods.",
           "ai_context": {
             "synonyms": [
               "volatility",
@@ -4274,7 +4274,7 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"series_key\": \"weo_inflation\", \"label\": \"IMF forecast: inflation\", \"short_label\": \"Inflation\", \"category\": \"Prices\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": false, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"PCPIPCH\"]}, \"observations\": 51, \"first_period\": \"1980-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": 4.5}"
+          "data": "{\"series_key\": \"weo_inflation\", \"label\": \"IMF: inflation\", \"short_label\": \"Inflation\", \"category\": \"Prices\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"imf\", \"higher_is_better\": false, \"upstream_indicator\": \"PCPIPCH\", \"observations\": 52, \"first_period\": \"1980-01-01\", \"last_period\": \"2031-01-01\", \"last_value\": 3.0}"
         }
       ]
     },
@@ -4289,16 +4289,16 @@
           "period"
         ]
       ],
-      "description": "IMF WEO unemployment path, including published projections. Covers 1980-01 to 2030-01.",
+      "description": "IMF unemployment rate, including published projections. Covers 1980-01 to 2031-01.",
       "ai_context": {
         "synonyms": [
-          "imf forecast: unemployment",
+          "imf: unemployment",
           "unemployment"
         ],
         "examples": [
           "What is the latest unemployment?",
-          "Show imf forecast: unemployment by year over the last five years",
-          "Is imf forecast: unemployment rising pressure?"
+          "Show imf: unemployment by year over the last five years",
+          "Is imf: unemployment rising pressure?"
         ]
       },
       "fields": [
@@ -4311,7 +4311,7 @@
           "dimension": {
             "is_time": true
           },
-          "description": "Observation period for IMF forecast: unemployment.",
+          "description": "Observation period for IMF: unemployment.",
           "ai_context": {
             "synonyms": [
               "date",
@@ -4330,7 +4330,7 @@
           "dimension": {
             "is_time": false
           },
-          "description": "Observed value of IMF forecast: unemployment, measured in %.",
+          "description": "Observed value of IMF: unemployment, measured in %.",
           "ai_context": {
             "synonyms": [
               "reading",
@@ -4369,7 +4369,7 @@
             "sql": "AVG(value)"
           },
           "datatype": "Float",
-          "description": "Mean IMF forecast: unemployment across the selected periods.",
+          "description": "Mean IMF: unemployment across the selected periods.",
           "ai_context": {
             "synonyms": [
               "mean",
@@ -4383,7 +4383,7 @@
             "sql": "MIN(value)"
           },
           "datatype": "Float",
-          "description": "Lowest IMF forecast: unemployment in the selected periods."
+          "description": "Lowest IMF: unemployment in the selected periods."
         },
         {
           "name": "value_max",
@@ -4391,7 +4391,7 @@
             "sql": "MAX(value)"
           },
           "datatype": "Float",
-          "description": "Highest IMF forecast: unemployment in the selected periods."
+          "description": "Highest IMF: unemployment in the selected periods."
         },
         {
           "name": "value_standard_deviation",
@@ -4399,7 +4399,7 @@
             "sql": "STDDEV(value)"
           },
           "datatype": "Float",
-          "description": "Dispersion of IMF forecast: unemployment across the selected periods.",
+          "description": "Dispersion of IMF: unemployment across the selected periods.",
           "ai_context": {
             "synonyms": [
               "volatility",
@@ -4419,7 +4419,7 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"series_key\": \"weo_unemployment\", \"label\": \"IMF forecast: unemployment\", \"short_label\": \"Unemployment\", \"category\": \"Labour\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": false, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"LUR\"]}, \"observations\": 51, \"first_period\": \"1980-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": 31.405}"
+          "data": "{\"series_key\": \"weo_unemployment\", \"label\": \"IMF: unemployment\", \"short_label\": \"Unemployment\", \"category\": \"Labour\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"imf\", \"higher_is_better\": false, \"upstream_indicator\": \"LUR\", \"observations\": 52, \"first_period\": \"1980-01-01\", \"last_period\": \"2031-01-01\", \"last_value\": 31.9}"
         }
       ]
     },
@@ -4434,15 +4434,15 @@
           "period"
         ]
       ],
-      "description": "General government net lending/borrowing as a share of GDP. Covers 2000-01 to 2030-01.",
+      "description": "General government net lending/borrowing as a share of GDP. Covers 2000-01 to 2031-01.",
       "ai_context": {
         "synonyms": [
-          "imf forecast: fiscal balance",
+          "imf: fiscal balance",
           "fiscal balance"
         ],
         "examples": [
           "What is the latest fiscal balance?",
-          "Show imf forecast: fiscal balance by year over the last five years"
+          "Show imf: fiscal balance by year over the last five years"
         ]
       },
       "fields": [
@@ -4455,7 +4455,7 @@
           "dimension": {
             "is_time": true
           },
-          "description": "Observation period for IMF forecast: fiscal balance.",
+          "description": "Observation period for IMF: fiscal balance.",
           "ai_context": {
             "synonyms": [
               "date",
@@ -4474,7 +4474,7 @@
           "dimension": {
             "is_time": false
           },
-          "description": "Observed value of IMF forecast: fiscal balance, measured in % of GDP.",
+          "description": "Observed value of IMF: fiscal balance, measured in % of GDP.",
           "ai_context": {
             "synonyms": [
               "reading",
@@ -4513,7 +4513,7 @@
             "sql": "AVG(value)"
           },
           "datatype": "Float",
-          "description": "Mean IMF forecast: fiscal balance across the selected periods.",
+          "description": "Mean IMF: fiscal balance across the selected periods.",
           "ai_context": {
             "synonyms": [
               "mean",
@@ -4527,7 +4527,7 @@
             "sql": "MIN(value)"
           },
           "datatype": "Float",
-          "description": "Lowest IMF forecast: fiscal balance in the selected periods."
+          "description": "Lowest IMF: fiscal balance in the selected periods."
         },
         {
           "name": "value_max",
@@ -4535,7 +4535,7 @@
             "sql": "MAX(value)"
           },
           "datatype": "Float",
-          "description": "Highest IMF forecast: fiscal balance in the selected periods."
+          "description": "Highest IMF: fiscal balance in the selected periods."
         },
         {
           "name": "value_standard_deviation",
@@ -4543,7 +4543,7 @@
             "sql": "STDDEV(value)"
           },
           "datatype": "Float",
-          "description": "Dispersion of IMF forecast: fiscal balance across the selected periods.",
+          "description": "Dispersion of IMF: fiscal balance across the selected periods.",
           "ai_context": {
             "synonyms": [
               "volatility",
@@ -4563,7 +4563,7 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"series_key\": \"weo_govt_balance\", \"label\": \"IMF forecast: fiscal balance\", \"short_label\": \"Fiscal balance\", \"category\": \"Government\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": null, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"GGXCNL_NGDP\"]}, \"observations\": 31, \"first_period\": \"2000-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": -5.64}"
+          "data": "{\"series_key\": \"weo_govt_balance\", \"label\": \"IMF: fiscal balance\", \"short_label\": \"Fiscal balance\", \"category\": \"Government\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"imf\", \"higher_is_better\": null, \"upstream_indicator\": \"GGXCNL_NGDP\", \"observations\": 32, \"first_period\": \"2000-01-01\", \"last_period\": \"2031-01-01\", \"last_value\": -3.4}"
         }
       ]
     },
@@ -4578,16 +4578,16 @@
           "period"
         ]
       ],
-      "description": "General government gross debt as a share of GDP. Covers 2000-01 to 2030-01.",
+      "description": "General government gross debt as a share of GDP. Covers 2000-01 to 2031-01.",
       "ai_context": {
         "synonyms": [
-          "imf forecast: government debt",
+          "imf: government debt",
           "govt debt"
         ],
         "examples": [
           "What is the latest govt debt?",
-          "Show imf forecast: government debt by year over the last five years",
-          "Is imf forecast: government debt rising pressure?"
+          "Show imf: government debt by year over the last five years",
+          "Is imf: government debt rising pressure?"
         ]
       },
       "fields": [
@@ -4600,7 +4600,7 @@
           "dimension": {
             "is_time": true
           },
-          "description": "Observation period for IMF forecast: government debt.",
+          "description": "Observation period for IMF: government debt.",
           "ai_context": {
             "synonyms": [
               "date",
@@ -4619,7 +4619,7 @@
           "dimension": {
             "is_time": false
           },
-          "description": "Observed value of IMF forecast: government debt, measured in % of GDP.",
+          "description": "Observed value of IMF: government debt, measured in % of GDP.",
           "ai_context": {
             "synonyms": [
               "reading",
@@ -4658,7 +4658,7 @@
             "sql": "AVG(value)"
           },
           "datatype": "Float",
-          "description": "Mean IMF forecast: government debt across the selected periods.",
+          "description": "Mean IMF: government debt across the selected periods.",
           "ai_context": {
             "synonyms": [
               "mean",
@@ -4672,7 +4672,7 @@
             "sql": "MIN(value)"
           },
           "datatype": "Float",
-          "description": "Lowest IMF forecast: government debt in the selected periods."
+          "description": "Lowest IMF: government debt in the selected periods."
         },
         {
           "name": "value_max",
@@ -4680,7 +4680,7 @@
             "sql": "MAX(value)"
           },
           "datatype": "Float",
-          "description": "Highest IMF forecast: government debt in the selected periods."
+          "description": "Highest IMF: government debt in the selected periods."
         },
         {
           "name": "value_standard_deviation",
@@ -4688,7 +4688,7 @@
             "sql": "STDDEV(value)"
           },
           "datatype": "Float",
-          "description": "Dispersion of IMF forecast: government debt across the selected periods.",
+          "description": "Dispersion of IMF: government debt across the selected periods.",
           "ai_context": {
             "synonyms": [
               "volatility",
@@ -4708,7 +4708,7 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"series_key\": \"weo_govt_debt\", \"label\": \"IMF forecast: government debt\", \"short_label\": \"Govt debt\", \"category\": \"Government\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": false, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"GGXWDG_NGDP\"]}, \"observations\": 31, \"first_period\": \"2000-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": 88.732}"
+          "data": "{\"series_key\": \"weo_govt_debt\", \"label\": \"IMF: government debt\", \"short_label\": \"Govt debt\", \"category\": \"Government\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"imf\", \"higher_is_better\": false, \"upstream_indicator\": \"GGXWDG_NGDP\", \"observations\": 32, \"first_period\": \"2000-01-01\", \"last_period\": \"2031-01-01\", \"last_value\": 79.8}"
         }
       ]
     },
@@ -4723,15 +4723,15 @@
           "period"
         ]
       ],
-      "description": "Current account balance as a share of GDP. Covers 1980-01 to 2030-01.",
+      "description": "Current account balance as a share of GDP. Covers 1980-01 to 2031-01.",
       "ai_context": {
         "synonyms": [
-          "imf forecast: current account",
+          "imf: current account",
           "current acct"
         ],
         "examples": [
           "What is the latest current acct?",
-          "Show imf forecast: current account by year over the last five years"
+          "Show imf: current account by year over the last five years"
         ]
       },
       "fields": [
@@ -4744,7 +4744,7 @@
           "dimension": {
             "is_time": true
           },
-          "description": "Observation period for IMF forecast: current account.",
+          "description": "Observation period for IMF: current account.",
           "ai_context": {
             "synonyms": [
               "date",
@@ -4763,7 +4763,7 @@
           "dimension": {
             "is_time": false
           },
-          "description": "Observed value of IMF forecast: current account, measured in % of GDP.",
+          "description": "Observed value of IMF: current account, measured in % of GDP.",
           "ai_context": {
             "synonyms": [
               "reading",
@@ -4802,7 +4802,7 @@
             "sql": "AVG(value)"
           },
           "datatype": "Float",
-          "description": "Mean IMF forecast: current account across the selected periods.",
+          "description": "Mean IMF: current account across the selected periods.",
           "ai_context": {
             "synonyms": [
               "mean",
@@ -4816,7 +4816,7 @@
             "sql": "MIN(value)"
           },
           "datatype": "Float",
-          "description": "Lowest IMF forecast: current account in the selected periods."
+          "description": "Lowest IMF: current account in the selected periods."
         },
         {
           "name": "value_max",
@@ -4824,7 +4824,7 @@
             "sql": "MAX(value)"
           },
           "datatype": "Float",
-          "description": "Highest IMF forecast: current account in the selected periods."
+          "description": "Highest IMF: current account in the selected periods."
         },
         {
           "name": "value_standard_deviation",
@@ -4832,7 +4832,7 @@
             "sql": "STDDEV(value)"
           },
           "datatype": "Float",
-          "description": "Dispersion of IMF forecast: current account across the selected periods.",
+          "description": "Dispersion of IMF: current account across the selected periods.",
           "ai_context": {
             "synonyms": [
               "volatility",
@@ -4852,7 +4852,294 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"series_key\": \"weo_current_account\", \"label\": \"IMF forecast: current account\", \"short_label\": \"Current acct\", \"category\": \"External Sector\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"dbnomics\", \"higher_is_better\": null, \"upstream_indicator\": {\"weo-country\": [\"ZAF\"], \"weo-subject\": [\"BCA_NGDPD\"]}, \"observations\": 51, \"first_period\": \"1980-01-01\", \"last_period\": \"2030-01-01\", \"last_value\": -2.191}"
+          "data": "{\"series_key\": \"weo_current_account\", \"label\": \"IMF: current account\", \"short_label\": \"Current acct\", \"category\": \"External Sector\", \"unit\": \"% of GDP\", \"frequency\": \"A\", \"provider\": \"imf\", \"higher_is_better\": null, \"upstream_indicator\": \"BCA_NGDPD\", \"observations\": 52, \"first_period\": \"1980-01-01\", \"last_period\": \"2031-01-01\", \"last_value\": -1.9}"
+        }
+      ]
+    },
+    {
+      "name": "fct_weo_gdp_per_capita",
+      "source": "sa_insights.fct_weo_gdp_per_capita",
+      "primary_key": [
+        "period"
+      ],
+      "unique_keys": [
+        [
+          "period"
+        ]
+      ],
+      "description": "GDP per capita at current prices, including projections. Covers 1980-01 to 2031-01.",
+      "ai_context": {
+        "synonyms": [
+          "imf: gdp per capita"
+        ],
+        "examples": [
+          "What is the latest imf: gdp per capita?",
+          "Show imf: gdp per capita by year over the last five years",
+          "Is imf: gdp per capita improving?"
+        ]
+      },
+      "fields": [
+        {
+          "name": "period",
+          "expression": {
+            "sql": "period"
+          },
+          "datatype": "Date",
+          "dimension": {
+            "is_time": true
+          },
+          "description": "Observation period for IMF: GDP per capita.",
+          "ai_context": {
+            "synonyms": [
+              "date",
+              "month",
+              "quarter",
+              "year"
+            ]
+          }
+        },
+        {
+          "name": "value",
+          "expression": {
+            "sql": "value"
+          },
+          "datatype": "Float",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Observed value of IMF: GDP per capita, measured in US$.",
+          "ai_context": {
+            "synonyms": [
+              "reading",
+              "observation",
+              "level"
+            ]
+          }
+        },
+        {
+          "name": "series_key",
+          "expression": {
+            "sql": "series_key"
+          },
+          "datatype": "String",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Stable identifier of the indicator."
+        },
+        {
+          "name": "unit",
+          "expression": {
+            "sql": "unit"
+          },
+          "datatype": "String",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Unit of measurement for the value field."
+        }
+      ],
+      "metrics": [
+        {
+          "name": "value_average",
+          "expression": {
+            "sql": "AVG(value)"
+          },
+          "datatype": "Float",
+          "description": "Mean IMF: GDP per capita across the selected periods.",
+          "ai_context": {
+            "synonyms": [
+              "mean",
+              "average"
+            ]
+          }
+        },
+        {
+          "name": "value_min",
+          "expression": {
+            "sql": "MIN(value)"
+          },
+          "datatype": "Float",
+          "description": "Lowest IMF: GDP per capita in the selected periods."
+        },
+        {
+          "name": "value_max",
+          "expression": {
+            "sql": "MAX(value)"
+          },
+          "datatype": "Float",
+          "description": "Highest IMF: GDP per capita in the selected periods."
+        },
+        {
+          "name": "value_standard_deviation",
+          "expression": {
+            "sql": "STDDEV(value)"
+          },
+          "datatype": "Float",
+          "description": "Dispersion of IMF: GDP per capita across the selected periods.",
+          "ai_context": {
+            "synonyms": [
+              "volatility",
+              "standard deviation"
+            ]
+          }
+        },
+        {
+          "name": "observation_count",
+          "expression": {
+            "sql": "COUNT(value)"
+          },
+          "datatype": "Integer",
+          "description": "Number of non-missing observations in the selection."
+        }
+      ],
+      "custom_extensions": [
+        {
+          "vendor_name": "SA_INSIGHTS",
+          "data": "{\"series_key\": \"weo_gdp_per_capita\", \"label\": \"IMF: GDP per capita\", \"short_label\": \"IMF: GDP per capita\", \"category\": \"Growth & Output\", \"unit\": \"US$\", \"frequency\": \"A\", \"provider\": \"imf\", \"higher_is_better\": true, \"upstream_indicator\": \"NGDPDPC\", \"observations\": 52, \"first_period\": \"1980-01-01\", \"last_period\": \"2031-01-01\", \"last_value\": 8836.018}"
+        }
+      ]
+    },
+    {
+      "name": "fct_imf_population",
+      "source": "sa_insights.fct_imf_population",
+      "primary_key": [
+        "period"
+      ],
+      "unique_keys": [
+        [
+          "period"
+        ]
+      ],
+      "description": "Population in millions, including projections. Covers 1980-01 to 2031-01.",
+      "ai_context": {
+        "synonyms": [
+          "imf: population"
+        ],
+        "examples": [
+          "What is the latest imf: population?",
+          "Show imf: population by year over the last five years"
+        ]
+      },
+      "fields": [
+        {
+          "name": "period",
+          "expression": {
+            "sql": "period"
+          },
+          "datatype": "Date",
+          "dimension": {
+            "is_time": true
+          },
+          "description": "Observation period for IMF: population.",
+          "ai_context": {
+            "synonyms": [
+              "date",
+              "month",
+              "quarter",
+              "year"
+            ]
+          }
+        },
+        {
+          "name": "value",
+          "expression": {
+            "sql": "value"
+          },
+          "datatype": "Float",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Observed value of IMF: population, measured in million.",
+          "ai_context": {
+            "synonyms": [
+              "reading",
+              "observation",
+              "level"
+            ]
+          }
+        },
+        {
+          "name": "series_key",
+          "expression": {
+            "sql": "series_key"
+          },
+          "datatype": "String",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Stable identifier of the indicator."
+        },
+        {
+          "name": "unit",
+          "expression": {
+            "sql": "unit"
+          },
+          "datatype": "String",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Unit of measurement for the value field."
+        }
+      ],
+      "metrics": [
+        {
+          "name": "value_average",
+          "expression": {
+            "sql": "AVG(value)"
+          },
+          "datatype": "Float",
+          "description": "Mean IMF: population across the selected periods.",
+          "ai_context": {
+            "synonyms": [
+              "mean",
+              "average"
+            ]
+          }
+        },
+        {
+          "name": "value_min",
+          "expression": {
+            "sql": "MIN(value)"
+          },
+          "datatype": "Float",
+          "description": "Lowest IMF: population in the selected periods."
+        },
+        {
+          "name": "value_max",
+          "expression": {
+            "sql": "MAX(value)"
+          },
+          "datatype": "Float",
+          "description": "Highest IMF: population in the selected periods."
+        },
+        {
+          "name": "value_standard_deviation",
+          "expression": {
+            "sql": "STDDEV(value)"
+          },
+          "datatype": "Float",
+          "description": "Dispersion of IMF: population across the selected periods.",
+          "ai_context": {
+            "synonyms": [
+              "volatility",
+              "standard deviation"
+            ]
+          }
+        },
+        {
+          "name": "observation_count",
+          "expression": {
+            "sql": "COUNT(value)"
+          },
+          "datatype": "Integer",
+          "description": "Number of non-missing observations in the selection."
+        }
+      ],
+      "custom_extensions": [
+        {
+          "vendor_name": "SA_INSIGHTS",
+          "data": "{\"series_key\": \"imf_population\", \"label\": \"IMF: population\", \"short_label\": \"IMF: population\", \"category\": \"Population\", \"unit\": \"million\", \"frequency\": \"A\", \"provider\": \"imf\", \"higher_is_better\": null, \"upstream_indicator\": \"LP\", \"observations\": 52, \"first_period\": \"1980-01-01\", \"last_period\": \"2031-01-01\", \"last_value\": 67.783}"
         }
       ]
     }
@@ -5305,6 +5592,34 @@
       "ai_context": {
         "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
       }
+    },
+    {
+      "name": "fct_weo_gdp_per_capita_to_dim_date_year",
+      "from": "fct_weo_gdp_per_capita",
+      "to": "dim_date_year",
+      "from_columns": [
+        "period"
+      ],
+      "to_columns": [
+        "period"
+      ],
+      "ai_context": {
+        "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+      }
+    },
+    {
+      "name": "fct_imf_population_to_dim_date_year",
+      "from": "fct_imf_population",
+      "to": "dim_date_year",
+      "from_columns": [
+        "period"
+      ],
+      "to_columns": [
+        "period"
+      ],
+      "ai_context": {
+        "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+      }
     }
   ],
   "metrics": [
@@ -5382,7 +5697,7 @@
   "custom_extensions": [
     {
       "vendor_name": "SA_INSIGHTS",
-      "data": "{\"generated_at\": \"2026-11-07T12:12:40+00:00\", \"document_version\": \"0.2.0.dev0\", \"series_count\": 32, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
+      "data": "{\"generated_at\": \"2026-11-07T12:44:41+00:00\", \"document_version\": \"0.2.0.dev0\", \"series_count\": 34, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
     }
   ]
 }
