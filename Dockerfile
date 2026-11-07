@@ -30,7 +30,10 @@ ENV PYTHONUNBUFFERED=1 \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends curl ca-certificates \
+# git is required by the publisher: the worker commits the regenerated static
+# site and pushes it, because GitHub Actions cannot run on this account
+# (billing lock) and branch-based Pages needs the files in the repo.
+ && apt-get install -y --no-install-recommends curl ca-certificates git \
  && rm -rf /var/lib/apt/lists/*
 
 # Pinned literal, not an ARG: `COPY --from` cannot interpolate build args, so

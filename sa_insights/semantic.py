@@ -32,6 +32,7 @@ Run via:  python scripts/build_semantic_model.py
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -43,8 +44,10 @@ DRAFT_VERSION = "0.2.0.dev0"
 MODEL_NAME = "sa_insights"
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT_DIR = ROOT / "semantic"
-SCHEMA_PATH = ROOT / "semantic" / "ossie-schema.json"
+# Overridable so a container can write into a mounted git checkout rather than
+# its own (read-only, for the non-root user) application tree.
+OUT_DIR = Path(os.getenv("SA_SEMANTIC_OUT", ROOT / "semantic"))
+SCHEMA_PATH = Path(os.getenv("SA_OSSIE_SCHEMA", ROOT / "semantic" / "ossie-schema.json"))
 
 GRAIN_DATASET = {"M": "dim_date_month", "Q": "dim_date_quarter", "A": "dim_date_year"}
 

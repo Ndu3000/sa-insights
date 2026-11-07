@@ -30,6 +30,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import sys
 import zipfile
 from datetime import datetime, timezone
@@ -45,9 +46,12 @@ from sa_insights.catalog import SERIES, short_label  # noqa: E402
 from sa_insights.forecast import infer_frequency  # noqa: E402
 from sa_insights.sources import read_cache  # noqa: E402
 
-OUT_DIR = ROOT / "docs" / "download"
-BUILD_DIR = ROOT / "build" / "powerbi"
-FC_PATH = ROOT / "docs" / "data" / "forecasts.json"
+# Honour the DOCS override so the container publisher writes into its mounted
+# checkout. BUILD_DIR is scratch and can stay wherever the process may write.
+_DOCS = Path(os.getenv("SA_DOCS_OUT", ROOT / "docs"))
+OUT_DIR = _DOCS / "download"
+BUILD_DIR = Path(os.getenv("SA_BUILD_DIR", ROOT / "build" / "powerbi"))
+FC_PATH = _DOCS / "data" / "forecasts.json"
 ZIP_NAME = "sa-insights-powerbi.zip"
 
 MODEL_NAME = "sa_insights"

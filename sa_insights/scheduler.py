@@ -62,7 +62,36 @@ def run_once(force: bool = True) -> refresh.RefreshReport:
         summary["observations"],
         summary["forecasts"],
     )
+
+    _publish()
+
     return report
+
+
+def _publish() -> None:
+    """Publish the static site after a successful refresh.
+
+    GitHub Actions is unavailable on this account, so the worker is the only
+    thing that runs on a schedule. Publishing here is what makes the public
+    Pages site actually refresh daily.
+
+    Gated on SA_PUBLISH_REPO so local runs never touch a git remote: with no
+    checkout mounted, this is a cheap no-op.
+    """
+    from . import publish
+
+    if not os.getenv("SA_PUBLISH_REPO"):
+        LOG.info("publish: skipped (SA_PUBLISH_REPO not set)")
+        return
+
+    LOG.info("publish: rendering static site")
+    try:
+        changed = publish.publish()
+    except Exception as exc:  # noqa: BLE001 - a publish failure must not kill the worker
+        LOG.error("publish failed: %s", exc)
+        return
+
+    LOG.info("publish: %s", "site updated and pushed" if changed else "no changes")
 
 
 def main() -> int:

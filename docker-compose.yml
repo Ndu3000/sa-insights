@@ -72,8 +72,22 @@ services:
       <<: *common-env
       # 05:15 UTC daily — after SARB and Stats SA overnight publishing.
       REFRESH_CRON: ${REFRESH_CRON:-15 5 * * *}
+      # Publishing the static site. GitHub Actions is blocked on this account,
+      # so the worker is what keeps the public Pages site current. Leave
+      # SA_PUBLISH_REPO empty to disable publishing.
+      SA_PUBLISH_REPO: ${SA_PUBLISH_REPO-/publish}
+      SA_PUBLISH_BRANCH: ${SA_PUBLISH_BRANCH:-main}
+      SA_PUBLISH_DRY_RUN: ${SA_PUBLISH_DRY_RUN:-}
+      GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-sa-insights-bot}
+      GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL:-bot@sa-insights.local}
+      # Token-based push: containers cannot answer an interactive prompt.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     volumes:
       - sa-data:/data
+      # The git checkout to publish into. Defaults to this project directory for
+      # local use; on a server point it at a dedicated clone so a publish never
+      # fights your working tree.
+      - ${SA_PUBLISH_HOST_DIR:-.}:/publish
     restart: unless-stopped
     # The worker runs a scheduler, not an HTTP server, so it needs its own probe.
     # Inheriting the image's Streamlit healthcheck made it report unhealthy

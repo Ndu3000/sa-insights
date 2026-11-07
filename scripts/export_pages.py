@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import shutil
 import sys
 from datetime import datetime, timezone
@@ -25,7 +26,7 @@ if str(ROOT) not in sys.path:
 
 import pandas as pd  # noqa: E402
 
-from sa_insights import ui  # noqa: E402
+from sa_insights import store, ui  # noqa: E402
 from sa_insights.catalog import BY_KEY, HEADLINE, SERIES, short_label  # noqa: E402
 from sa_insights.forecast import (  # noqa: E402
     ForecastError,
@@ -34,7 +35,9 @@ from sa_insights.forecast import (  # noqa: E402
 )
 from sa_insights.sources import cache_meta, read_cache  # noqa: E402
 
-DOCS = ROOT / "docs"
+# Output directory, overridable so the Docker worker can render into a git
+# checkout mounted at /publish instead of the image's own tree.
+DOCS = Path(os.getenv("SA_DOCS_OUT", ROOT / "docs"))
 
 # Forecasts showcased on the static page.
 SHOWCASE = [
@@ -66,12 +69,41 @@ def chart_html(fig) -> str:
 
 
 def collect() -> dict[str, pd.Series]:
+    """Load series for the static page.
+
+    Prefers the DuckDB warehouse, which is the system of record since the
+    container migration. Falls back to the CSV cache so this script still works
+    in a bare checkout that has only run ``collect``.
+    """
     data: dict[str, pd.Series] = {}
+
+    try:
+        if store.is_initialised():
+            data = store.load_observations()
+            if data:
+                print(f"source: warehouse ({len(data)} series)")
+                return data
+    except Exception as exc:  # noqa: BLE001 - fall back rather than crash
+        print(f"warehouse unavailable ({exc}); falling back to cache")
+
     for spec in SERIES:
         series = read_cache(spec.key)
         if series is not None and not series.empty:
             data[spec.key] = series
+    print(f"source: cache ({len(data)} series)")
     return data
+
+
+def _history(series_key: str) -> pd.Series | None:
+    """Recent history for a chart, from the warehouse first, then the cache."""
+    try:
+        if store.is_initialised():
+            found = store.load_observations([series_key])
+            if found.get(series_key) is not None:
+                return found[series_key]
+    except Exception:  # noqa: BLE001
+        pass
+    return read_cache(series_key)
 
 
 def kpi_row(data: dict[str, pd.Series]) -> str:
@@ -179,7 +211,7 @@ def chart_cards(data: dict[str, pd.Series]) -> str:
     return '<div class="grid-2">' + "".join(cards) + "</div>"
 
 
-FC_PATH = ROOT / "docs" / "data" / "forecasts.json"
+FC_PATH = DOCS / "data" / "forecasts.json"
 
 
 def _fc_chart(spec, entry: dict, height: int = 330) -> str:
@@ -187,7 +219,7 @@ def _fc_chart(spec, entry: dict, height: int = 330) -> str:
     import plotly.graph_objects as go
 
     dates = pd.to_datetime(entry["periods"])
-    hist = read_cache(spec.key)
+    hist = _history(spec.key)
     freq = entry["frequency"]
     date_fmt = "%Y" if freq == "A" else "%b %Y"
 
@@ -343,16 +375,19 @@ def fm_winners_table() -> str:
 
     rows = []
     for key, v in wins:
+        # .get, not []: leaderboards written by an older build (or by the
+        # live-compute path) may omit "family", and a missing key must not take
+        # down the whole page render.
         runner_up = next(
             (
                 m
                 for m in v.get("leaderboard", [])
-                if m["family"] != "foundation model" and m.get("mase") is not None
+                if m.get("family") != "foundation model" and m.get("mase") is not None
             ),
             None,
         )
         runner_txt = (
-            f"{html.escape(runner_up['model'])} ({runner_up['mase']:.2f})"
+            f"{html.escape(str(runner_up.get('model', '—')))} ({runner_up['mase']:.2f})"
             if runner_up
             else "—"
         )
@@ -470,7 +505,7 @@ def coverage_table(data: dict[str, pd.Series]) -> str:
 
 def downloads_section() -> str:
     """Offer the semantic model as portable, tool-ready downloads."""
-    download_dir = ROOT / "docs" / "download"
+    download_dir = DOCS / "download"
     pbi_zip = download_dir / "sa-insights-powerbi.zip"
 
     pbi_card = ""
@@ -502,7 +537,9 @@ def downloads_section() -> str:
     # GitHub Pages publishes only docs/, so the semantic documents must be
     # copied inside it. Linking to ../semantic/ would 404 on the live site even
     # though it happens to resolve locally.
-    ossie_dir = ROOT / "docs" / "semantic"
+    # Honour the DOCS override so the container publisher writes into its
+    # mounted checkout rather than the image's read-only tree.
+    ossie_dir = DOCS / "semantic"
     ossie_links = []
     for name, label in (
         ("sa_insights.ossie.yaml", "Ossie 0.1.1 · YAML"),
@@ -514,7 +551,10 @@ def downloads_section() -> str:
         if not src.exists():
             continue
         ossie_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, ossie_dir / name)
+        # copyfile, not copy2: copy2 also copies file metadata, and chmod/utime
+        # on a bind-mounted volume raises PermissionError. Only the bytes matter
+        # for a download.
+        shutil.copyfile(src, ossie_dir / name)
         ossie_links.append(
             f'<a class="btn ghost" href="semantic/{name}" download '
             f'style="margin:.25rem .25rem 0 0">{label}</a>'
