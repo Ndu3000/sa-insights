@@ -106,3 +106,11 @@ last_chat_history_*.md
 .embedding_cache/
 vector_store/
 .chroma/
+
+# v2 runtime artefacts
+data/*.duckdb
+data/*.duckdb.wal
+data/*.lock
+.mlflow/
+mlruns/
+*.log

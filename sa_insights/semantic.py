@@ -288,7 +288,6 @@ def _model_metrics(present: set[str], grains: dict[str, str]) -> list[dict]:
     """Model-scoped measures that genuinely span datasets."""
     metrics: list[dict] = []
 
-    monthly = {"policy_rate", "cpi_yoy", "usd_zar", "equity_index", "lending_rate", "bond_yield"}
     if {"policy_rate", "cpi_yoy"} <= present and grains.get("policy_rate") == grains.get("cpi_yoy"):
         metrics.append(
             {

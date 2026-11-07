@@ -1,12 +1,20 @@
 # SA Insights
 
-A live dashboard for South African macroeconomic statistics, with a
-one-shot time-series forecasting lab and a portable Apache Ossie semantic
-model.
+A live dashboard for South African macroeconomic statistics, with automated
+time-series forecasting, model tracking and a portable semantic model.
 
-**Live data · automated model selection · shareable semantic layer**
+**Static demo:** <https://ndu3000.github.io/sa-insights/>
+**Live app:** run locally or in Docker — see [DEPLOYMENT.md](DEPLOYMENT.md)
 
-**→ [ndu3000.github.io/sa-insights](https://ndu3000.github.io/sa-insights/)**
+| | Static demo | Containerised app |
+|---|---|---|
+| Data | Snapshot at last commit | Refreshed daily, live |
+| Downloads | Pre-built | Generated on request |
+| Custom dashboards | Session only | Saved to the warehouse |
+| Model tracking | — | MLflow |
+
+The static demo exists for a free public preview. Everything below — live data,
+live downloads, saved dashboards, model lineage — requires the container.
 
 ---
 
@@ -14,139 +22,174 @@ model.
 
 | Tab | What you get |
 |-----|--------------|
-| **Overview** | Six headline indicators with trend sparklines, a data-derived economic read-through, and the IMF's published outlook |
-| **Explore** | Any of 29 series, any time window, with change, CAGR, volatility, distribution and CSV export |
-| **Forecast lab** | Backtest-driven model selection, confidence bands, a full leaderboard, and comparison against IMF projections |
-| **Compare** | Indexed multi-series comparison, correlation matrix and scatter inspection |
-| **My dashboard** | Build and export your own set of tiles and charts |
+| **Overview** | Six headline indicators with sparklines, a data-derived read-through, and the IMF's published outlook |
+| **Explore** | Any of 34 series, any window, with change, CAGR, volatility, distribution and CSV export |
+| **Forecast lab** | Backtest-driven model selection, confidence bands, full leaderboard, comparison against IMF projections |
+| **Compare** | Indexed multi-series comparison, correlation matrix, scatter inspection |
+| **My dashboard** | Build a layout, save it, reload it later |
+| **Downloads** | Power BI bundle, Ossie model, CSVs — all built from live data |
+
+---
 
 ## Data sources
 
-All sources are public and key-free. Every series is cached locally for 12
-hours and can be refreshed on demand.
-
 | Provider | Used for | Licence |
 |----------|----------|---------|
-| **South African Reserve Bank** — official Web API | Policy and prime rates, bond yields, USD/ZAR, real effective exchange rate, CPI and PPI, retail and manufacturing volumes, mining output, vehicle sales, the leading indicator | Public |
-| **Stats SA** (carried via SARB) | Consumer and producer inflation originate here | Public |
-| **World Bank** Open Data API | Annual macro, labour, fiscal and social indicators | CC BY 4.0 |
-| **IMF** IFS and WEO, via the DBnomics mirror | Long-run history and published forecasts to 2030 | IMF terms |
-| **FRED** (St. Louis Fed) | Quarterly real GDP | Public |
+| **SARB** — official Web API | Policy/prime rates, bond yields, USD/ZAR, real effective FX, CPI, PPI, retail and manufacturing volumes, mining output, vehicle sales, leading indicator | Public |
+| **Stats SA** (via SARB) | Consumer and producer inflation originate here | Public |
+| **IMF DataMapper** | GDP growth, inflation, unemployment, fiscal balance, debt, current account, GDP per capita, population — with projections to 2031 | IMF terms |
+| **World Bank** Open Data | Annual macro, labour, fiscal and social aggregates | CC BY 4.0 |
+| **FRED** | Quarterly real GDP | Public |
 
-Coverage spans 1946 to the present across 32 indicators — roughly 8,100
-observations.
+34 indicators, roughly 8,250 observations, spanning 1946 to 2031.
 
 ### On recency
 
-Recency is tracked per series and always displayed, because "latest" means very
-different dates for different indicators:
+Recency is tracked per series and always displayed, because "latest" means
+different things for different indicators:
 
 | Indicator | Latest | Lag |
 |-----------|--------|-----|
-| Repo rate, prime rate, USD/ZAR, bond yield | Nov 2026 | days |
+| Repo, prime, USD/ZAR, bond yield | Nov 2026 | days |
 | Vehicle sales | Oct 2026 | ~1 month |
-| **CPI / PPI inflation** | **Sep 2026** | **~2 months** |
-| Retail, manufacturing, mining, leading indicator | Aug 2026 | ~3 months |
+| CPI / PPI inflation | Sep 2026 | ~2 months |
+| Retail, manufacturing, mining, leading | Aug 2026 | ~3 months |
 | Real GDP (quarterly) | Q1 2026 | ~10 months |
-| GDP growth, unemployment, population, debt ratio | 2025 (annual) | 1 year+ |
+| GDP growth, unemployment, population | 2026 estimate + projections | — |
 
-An earlier version of this project read rates and inflation from the DBnomics
-IMF mirror, which was frozen at early 2025 — a lag of over 600 days. Those
-series now use the SARB Web API and are current to within days. Annual
-World Bank indicators remain a year behind by construction: they are published
-annual statistics, so treat them as structural benchmarks rather than current
-readings.
+An earlier version read rates and inflation from the DBnomics IMF mirror, which
+had frozen at early 2025 — a lag of over 600 days, while still returning
+valid-looking data. Those series now use the SARB Web API and are current to
+within days. `scripts/check_freshness.py` fails the build if a critical
+indicator goes stale again.
 
 Stats SA publishes the underlying CPI and PPI but exposes no queryable API, and
-its Nesstar endpoint was unreachable during this work. Rather than scrape the
-site, the dashboard reads the same figures from SARB, which republishes them
-within days of release.
+its SDMX endpoints return a bot-wall. Rather than scrape, the dashboard reads the
+same figures from SARB, which republishes within days of release.
 
+---
 
-## Forecasting approach
+## Forecasting
 
-Forecasts are not hard-coded to one algorithm. For each series we run a
-**rolling-origin backtest at the requested horizon** and let the data pick the
-model:
+Forecasts are not hard-coded to one algorithm. For each series a
+**rolling-origin backtest at the requested horizon** picks the winner:
 
-- Naive and seasonal naive baselines
-- Drift
-- Damped-trend ETS, with and without seasonality (plus multiplicative seasonality on long monthly series)
+- Naive, seasonal naive, drift baselines
+- Damped-trend ETS, with and without seasonality (plus multiplicative on long monthly series)
 - Theta
-- SARIMA variants (available in the thorough model pool)
+- SARIMA variants
+- **Chronos-Bolt** — Amazon's 48M-parameter time-series foundation model, forecasting zero-shot
 
-Selection uses **MASE** (mean absolute scaled error), which is scale-free and
-comparable across series. Below 1.0 means the model beats a naive forecast;
-above 1.0 the dashboard tells you so explicitly rather than hiding it.
+Selection uses **MASE** (mean absolute scaled error). Below 1.0 beats a naive
+forecast; the dashboard states plainly when a model fails to, rather than
+burying it.
 
-A 25-year default history window keeps models away from regimes that no longer
-apply (such as pre-inflation-targeting South Africa), and can be overridden.
+A 25-year default window keeps models away from regimes that no longer apply,
+such as pre-inflation-targeting South Africa.
+
+### Where the foundation model helps
+
+Chronos-Bolt wins a minority of series, mostly where history is short. On long
+monthly series classical ETS wins, because there is enough data to estimate
+seasonal structure directly rather than borrow a prior. That is the expected
+result and the reason it competes rather than replaces.
+
+Because the model is a 48M-parameter network, it runs **at refresh time**, not
+in the browser: shipping ~191 MB of weights so WebAssembly could run hundreds of
+forward passes is untenable on mobile. The app ships the resulting numbers.
+
+---
+
+## Model tracking
+
+Each series refresh logs to MLflow: parameters (window, horizon, model family),
+metrics (MASE, naive MASE, skill over naive), and the full leaderboard as an
+artifact. The run id is stored alongside the forecast, so the database and
+MLflow cross-reference.
+
+Tracking is **gated on `MLFLOW_TRACKING_URI`** — with no URI set it is a no-op,
+so a laptop run needs no server.
+
+---
 
 ## Apache Ossie semantic model
 
-The project publishes its metrics and dimensions in
+Metrics and dimensions are published in
 [Apache Ossie](https://ossie.apache.org) (incubating) format — formerly Open
-Semantic Interchange — so the business logic stays portable across BI tools,
-query engines and AI agents instead of living inside this app.
-
-```
-semantic/
-  sa_insights.ossie.yaml        # version 0.1.1 (released shape)
-  sa_insights.ossie-draft.yaml  # version 0.2.0.dev0 (flat draft)
-  ossie-schema.json             # official schema, vendored for validation
-```
-
-The model is a small star schema: three `dim_date_*` time dimensions at
-monthly, quarterly and annual grain; one `fct_<indicator>` per series; 29
-relationships; and 150 metrics, including cross-dataset measures such as
-`real_policy_rate` (repo rate less CPI) and `credit_spread`.
+Semantic Interchange — so the logic stays portable across BI tools, query
+engines and AI agents instead of living inside this app.
 
 Two document shapes are emitted deliberately:
 
-- **0.1.1** is the *released* revision, wrapping the model in a
-  `semantic_model` array. This is what current consumers such as dbt expect.
-- **0.2.0.dev0** is the *flat draft* shape that the only published JSON Schema
-  validates. Upstream marks it unstable, so it is provided for validation and
-  forward-compatibility rather than as the primary artefact.
+- **0.1.1** — the released revision, wrapping the model in a `semantic_model`
+  array. What current consumers such as dbt expect.
+- **0.2.0.dev0** — the flat draft that the only published JSON Schema validates.
+  Upstream marks it unstable, so it is provided for validation rather than as the
+  primary artefact.
 
-Regenerate after any catalogue or data change:
+The model is a small star schema: three time dimensions, one fact per indicator,
+33 relationships, and 150+ metrics including cross-dataset measures such as
+`real_policy_rate` (repo less CPI) and `credit_spread`.
 
-```bash
-python scripts/build_semantic_model.py           # writes semantic/*
-python scripts/build_semantic_model.py --check    # validate only
+Downloads are validated against the official schema before being served — an
+invalid model is worse than a failed download.
+
+---
+
+## Power BI
+
+The download tab produces a star schema (`dim_indicator`, `dim_date`,
+`fact_observation`, `fact_forecast`) plus a TMSL `.bim` model with relationships,
+a calendar hierarchy and 17 DAX measures. One long fact table with `series_key`
+as the foreign key, rather than 34 near-identical tables — the mapping is
+lossless and the field list stays navigable.
+
+---
+
+## Architecture
+
+```
+sources.py ──► refresh.py ──► DuckDB ──► app.py (Streamlit)
+   │              │              │              │
+   │              ├─► MLflow     └─► downloads ─┘
+   │              │                (Power BI, Ossie, CSV)
+   └─ SARB, IMF, World Bank, FRED
 ```
 
-Generation fails the build if the draft document does not validate against the
-official schema.
+- **Store:** DuckDB — analytical time series, no server, one file to back up
+- **Packaging:** uv with `pyproject.toml` + `uv.lock`
+- **Scheduling:** APScheduler in a dedicated `worker` container
+- **Downloads:** rendered from the warehouse per request, never committed
 
-## Running locally
+See [DEPLOYMENT.md](DEPLOYMENT.md) for container setup, environment variables,
+and the reasoning behind each choice.
 
-```bash
-python -m venv .venv
-source .venv/Scripts/activate     # Windows; use .venv/bin/activate on Unix
-pip install -r requirements.txt
-
-streamlit run app.py
-```
-
-Then open <http://localhost:8501>.
+---
 
 ## Project layout
 
 ```
 sa-insights/
-├── app.py                        # Streamlit entry point, all five views
+├── app.py                    # Streamlit entry point, six tabs
 ├── sa_insights/
-│   ├── catalog.py                # declarative series definitions
-│   ├── sources.py                # provider fetchers + disk cache
-│   ├── forecast.py               # model zoo, backtesting, intervals
-│   ├── semantic.py               # Apache Ossie model generator
-│   └── ui.py                     # design system, Plotly builders, CSS
-├── scripts/
-│   └── build_semantic_model.py   # regenerate + validate the semantic model
-├── semantic/                     # committed Ossie artefacts
-└── docs/                         # GitHub Pages site
+│   ├── catalog.py            # declarative series definitions
+│   ├── sources.py            # provider fetchers with retry/backoff
+│   ├── store.py              # DuckDB warehouse + cross-process write lock
+│   ├── forecast.py           # model zoo, backtesting, intervals
+│   ├── chronos_fm.py         # optional Chronos-Bolt adapter
+│   ├── refresh.py            # ingest → forecast → persist pipeline
+│   ├── scheduler.py          # APScheduler worker entry point
+│   ├── tracking.py           # MLflow logging (gated)
+│   ├── downloads.py          # artefacts generated on request
+│   ├── semantic.py           # Apache Ossie model generator
+│   └── ui.py                 # design system, Plotly builders, CSS
+├── scripts/                  # one-off exporters for the static site
+├── semantic/                 # committed Ossie artefacts + official schema
+├── Dockerfile                # multi-stage, uv, non-root, healthcheck
+└── docker-compose.yml        # app + worker (+ optional MLflow profile)
 ```
+
+---
 
 ## Caveats
 
@@ -155,6 +198,11 @@ know about policy decisions, shocks or structural breaks, and they are not
 investment advice. Publication lags vary by series — the dashboard always shows
 the period each value refers to, because "latest" for annual GDP and for the
 rand mean very different dates.
+
+Saved dashboards are namespaced per browser session. This is **not**
+authentication; see the known gaps in DEPLOYMENT.md.
+
+---
 
 ## Licence
 

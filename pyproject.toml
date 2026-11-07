@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sa-insights"
+version = "2.0.0"
+description = "South African macroeconomic dashboard with forecasting, model tracking and a portable semantic model"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+# Core runtime. Kept small so the dashboard and ingest path install fast and run
+# anywhere. The foundation model lives in the optional extra below because torch
+# is ~200 MB and not everyone needs it.
+dependencies = [
+    "streamlit>=1.36",
+    "plotly>=5.20",
+    "pandas>=2.1",
+    "numpy>=1.26",
+    "requests>=2.31",
+    "statsmodels>=0.14",
+    "scipy>=1.11",
+    "pyyaml>=6.0",
+    "jsonschema>=4.0",
+    "duckdb>=1.1",
+    "pyarrow>=15.0",
+    "apscheduler>=3.10",
+    # Full mlflow, not mlflow-skinny: MLflow 3 deprecated the filesystem
+    # tracking backend, so a SQLite backend is the supported path and serving
+    # its UI needs flask. Tracking stays opt-in via MLFLOW_TRACKING_URI.
+    "mlflow>=3.0",
+]
+
+[project.optional-dependencies]
+# Chronos-Bolt. Install with: uv sync --extra fm
+fm = [
+    "torch>=2.2",
+    "chronos-forecasting>=2.0",
+]
+
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+sa-collect = "sa_insights.cli:collect_main"
+sa-forecast = "sa_insights.cli:forecast_main"
+sa-export = "sa_insights.cli:export_main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sa_insights"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "pyflakes>=4.1.0",
+]

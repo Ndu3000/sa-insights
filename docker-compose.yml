@@ -1,0 +1,108 @@
+# SA Insights — local and single-host deployment
+#
+#   docker compose up -d                     # app + refresh worker
+#   docker compose --profile tracking up -d   # adds MLflow
+#   docker compose --profile fm up -d         # rebuild with Chronos-Bolt
+#
+# The MLflow profile is separate on purpose: tracking is genuinely useful but
+# it is another service to back up and upgrade, so it should be an explicit
+# choice rather than a forced dependency.
+
+x-common-env: &common-env
+  DATA_DIR: /data
+  LOG_LEVEL: INFO
+  # Uses `-` not `:-` on purpose: an explicitly empty value must stay empty so
+  # it disables tracking. With `:-`, MLFLOW_TRACKING_URI="" would silently fall
+  # back to the default and try to reach a server that is not running.
+  MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI-http://mlflow:5000}
+  MLFLOW_EXPERIMENT: sa-insights-forecasting
+  MLFLOW_DISABLE_AGENT_HINT: "1"
+  # Set to 0 for a lean deployment without the foundation model.
+  SA_INSIGHTS_FM: ${SA_INSIGHTS_FM:-1}
+  # Read-only Hugging Face token, needed only to raise rate limits when
+  # downloading Chronos weights. Never bake this into the image.
+  HF_TOKEN: ${HF_TOKEN:-}
+
+services:
+  # ---------------------------------------------------------------- web app
+  app:
+    build:
+      context: .
+      target: runtime
+      args:
+        # Default 0: a lean image that starts fast. Set SA_INSIGHTS_FM=1 to
+        # build with Chronos-Bolt (adds ~200 MB of torch + CUDA-adjacent deps).
+        WITH_FM: ${SA_INSIGHTS_FM:-0}
+    image: sa-insights:local
+    ports:
+      - "${APP_PORT:-8501}:8501"
+    environment: *common-env
+    volumes:
+      - sa-data:/data
+    restart: unless-stopped
+    # Streamlit ships a health endpoint; probe that rather than the root page.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  # ------------------------------------------------------- refresh scheduler
+  # Separate from the app so a long foundation-model refresh cannot block the
+  # UI, and so a crash in either process does not take down the other.
+  #
+  # This service *reuses* the image built by `app` rather than building its own:
+  # two services building the same tag concurrently makes BuildKit race on the
+  # final tag ("image already exists"). `app` is the only builder.
+  worker:
+    image: sa-insights:local
+    depends_on:
+      app:
+        condition: service_started
+    command: ["python", "-m", "sa_insights.scheduler"]
+    environment:
+      <<: *common-env
+      # 05:15 UTC daily — after SARB and Stats SA overnight publishing.
+      REFRESH_CRON: ${REFRESH_CRON:-15 5 * * *}
+    volumes:
+      - sa-data:/data
+    restart: unless-stopped
+    # The worker runs a scheduler, not an HTTP server, so it needs its own probe.
+    # Inheriting the image's Streamlit healthcheck made it report unhealthy
+    # forever ("could not connect to port 8501").
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sa_insights.scheduler, sa_insights.store; assert sa_insights.store.is_initialised()",
+        ]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+
+  # ----------------------------------------------------------------- MLflow
+  # Opt in with: docker compose --profile tracking up -d
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.1.4
+    profiles: ["tracking"]
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --allowed-hosts "*"
+      --cors-allowed-origins "*"
+    ports:
+      - "${MLFLOW_PORT:-5000}:5000"
+    volumes:
+      - mlflow-data:/mlflow
+    restart: unless-stopped
+
+volumes:
+  sa-data:
+  mlflow-data:

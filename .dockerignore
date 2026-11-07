@@ -1,0 +1,42 @@
+# Build context hygiene.
+#
+# Without this file, `docker build .` would upload the local virtualenv, the
+# DuckDB warehouse and MLflow runs — hundreds of megabytes of things the image
+# either builds itself or must not contain.
+
+# Local environment and caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Data and runtime artefacts — the container creates its own at /data
+data/
+build/
+dist/
+.mlflow/
+mlruns/
+*.duckdb
+*.duckdb.wal
+*.log
+
+# Version control and CI
+.git/
+.gitignore
+.github/
+
+# Documentation site (published separately, not needed in the image)
+docs/
+
+# Editor and OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets: never let these near a layer, even if a future .env appears
+.env
+.env.*
+*.pem

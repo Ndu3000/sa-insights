@@ -8,6 +8,7 @@ provider it came from.
 from __future__ import annotations
 
 import json
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,7 +32,12 @@ SARB_API = "https://custom.resbank.co.za/SarbWebApi"
 # ahead.
 IMF_DATAMAPPER = "https://www.imf.org/external/datamapper/api/v1"
 
-CACHE_DIR = Path(__file__).resolve().parent.parent / "data" / "cache"
+# Cache location. Must honour DATA_DIR: in a container the package lives under
+# /app, which is read-only for the unprivileged user, while the writable volume
+# is mounted at /data. Resolving relative to the package file ignored that and
+# caused "Permission denied: '/app/data'" on every fetch.
+_DATA_DIR = Path(os.getenv("DATA_DIR", Path(__file__).resolve().parent.parent / "data"))
+CACHE_DIR = Path(os.getenv("SA_CACHE_DIR", _DATA_DIR / "cache"))
 RAW_DIR = CACHE_DIR / "raw"
 DEFAULT_TTL_HOURS = 12
 

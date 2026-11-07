@@ -14,7 +14,7 @@ import streamlit as st
 
 warnings.filterwarnings("ignore")
 
-from sa_insights import __version__, chronos_fm, ui
+from sa_insights import chronos_fm, downloads, refresh, store, tracking, ui
 from sa_insights.catalog import (
     BY_KEY,
     CATEGORIES,
@@ -31,7 +31,6 @@ from sa_insights.forecast import (
     model_names,
     run_forecast,
 )
-from sa_insights.sources import cache_meta, load_all, load_series
 
 st.set_page_config(
     page_title="SA Insights",
@@ -45,36 +44,65 @@ st.markdown(ui.CSS, unsafe_allow_html=True)
 PROVIDER_LABEL = {
     "worldbank": "World Bank",
     "fred": "FRED",
-    "dbnomics": "DBnomics",
+    "dbnomics": "IMF (via DBnomics)",
+    "sarb": "SARB",
+    "imf": "IMF",
 }
 
 
 # ---------------------------------------------------------------------------
-# Data loading
+# Data loading — reads the warehouse, never the network on page load
 # ---------------------------------------------------------------------------
-@st.cache_data(show_spinner=False, ttl=60 * 30)
-def cached_load(force: bool, ttl_hours: float):
-    specs = [s for s in SERIES if not s.optional] + [s for s in SERIES if s.optional]
-    return load_all(specs, force=force, ttl_hours=ttl_hours)
+@st.cache_data(show_spinner=False, ttl=300)
+def load_warehouse(_cache_key: str) -> dict[str, pd.Series]:
+    """Read all observations from DuckDB.
+
+    Keyed on the last ingest timestamp so the cache invalidates the moment new
+    data lands, rather than waiting for a TTL to expire.
+    """
+    return store.load_observations()
 
 
-@st.cache_data(show_spinner=False, ttl=60 * 30)
-def cached_forecast(key: str, horizon: int, confidence: float, model: str, window: int, force_token: int):
-    spec = BY_KEY[key]
-    series, _ = load_series(spec, force=False)
-    result = run_forecast(
+@st.cache_data(show_spinner=False, ttl=300)
+def warehouse_summary(_cache_key: str) -> dict:
+    return store.data_summary()
+
+
+@st.cache_data(show_spinner=False, ttl=300)
+def warehouse_metadata(_cache_key: str) -> pd.DataFrame:
+    return store.indicator_metadata()
+
+
+@st.cache_data(show_spinner=False)
+def cached_forecast(
+    key: str, horizon: int, confidence: float, model: str, window: int, data_token: str
+):
+    """Fit a forecast on demand for the lab tab.
+
+    Uses the warehouse series, so what is projected matches what is plotted
+    elsewhere in the app.
+    """
+    series = store.load_observations([key]).get(key)
+    if series is None or series.empty:
+        raise ForecastError(f"no observations stored for {key}")
+    return run_forecast(
         series,
         horizon,
         confidence=confidence,
         model=model,
         max_history=window if window > 0 else None,
     )
-    return result
+
+
+def data_token() -> str:
+    """Cheap cache key derived from the newest ingest."""
+    summary = store.data_summary()
+    return str(summary.get("last_ingest") or "empty")
 
 
 def provider_of(spec) -> str:
     if spec.provider == "dbnomics":
-        return PROVIDER_LABEL["dbnomics"] + f" · {spec.fetch.get('provider', '')}"
+        return PROVIDER_LABEL["dbnomics"]
     return PROVIDER_LABEL.get(spec.provider, spec.provider)
 
 
@@ -117,32 +145,30 @@ def _tile_label(spec) -> str:
 # ---------------------------------------------------------------------------
 # Sidebar
 # ---------------------------------------------------------------------------
-def sidebar(statuses: list[dict]):
+def sidebar(summary: dict, meta: pd.DataFrame, stored_keys: set[str]):
     with st.sidebar:
         st.markdown(
             '<p style="font-size:.7rem;font-weight:700;letter-spacing:.1em;'
-            'text-transform:uppercase;color:#5C7089;margin-bottom:.2rem">Data</p>',
+            'text-transform:uppercase;color:#5C7089;margin-bottom:.2rem">Warehouse</p>',
             unsafe_allow_html=True,
         )
 
-        live = sum(1 for s in statuses if s["state"] == "live")
-        cached = sum(1 for s in statuses if s["state"] == "cache")
-        stale = sum(1 for s in statuses if s["state"] == "stale")
-        failed = sum(1 for s in statuses if s["state"] == "failed")
+        last = summary.get("last_ingest")
+        last_txt = "never" if last is None else pd.Timestamp(last).strftime("%d %b %Y %H:%M")
+        st.markdown(
+            ui.chips(
+                [
+                    (f"{summary['series']} series", "ok" if summary["series"] else "fail"),
+                    (f"{summary['observations']:,} obs", ""),
+                    (f"{summary['forecasts']} runs", ""),
+                ]
+            ),
+            unsafe_allow_html=True,
+        )
+        st.caption(f"last refresh {last_txt}")
 
-        items = []
-        if live:
-            items.append((f"{live} live", "ok"))
-        if cached:
-            items.append((f"{cached} cached", ""))
-        if stale:
-            items.append((f"{stale} stale", "stale"))
-        if failed:
-            items.append((f"{failed} failed", "fail"))
-        st.markdown(ui.chips(items or [("no data", "fail")]), unsafe_allow_html=True)
-
-        # Foundation-model status. Surfaced here rather than buried, because
-        # whether Chronos-Bolt is competing materially changes the leaderboard.
+        # Foundation-model status. Surfaced because whether Chronos-Bolt competes
+        # materially changes the leaderboard.
         fm = chronos_fm.describe()
         if not FM_ENABLED:
             fm_text, fm_cls = "Foundation model off", "stale"
@@ -151,27 +177,42 @@ def sidebar(statuses: list[dict]):
             fm_text, fm_cls = "Chronos-Bolt ready", "ok"
             fm_hint = fm["model_id"]
         else:
-            fm_text, fm_cls = "Foundation model unavailable", "fail"
+            fm_text, fm_cls = "Foundation model unavailable", "stale"
             fm_hint = (fm["reason"] or "")[:90]
-        st.markdown(
-            ui.chips([(fm_text, fm_cls)]),
-            unsafe_allow_html=True,
-        )
+        st.markdown(ui.chips([(fm_text, fm_cls)]), unsafe_allow_html=True)
         st.caption(fm_hint)
 
-        col_a, col_b = st.columns(2)
-        with col_a:
-            if st.button("↻ Refresh", use_container_width=True):
-                cached_load.clear()
-                cached_forecast.clear()
-                st.session_state["force_refresh"] = True
-                st.rerun()
-        with col_b:
+        # Tracking status: whether MLflow is receiving runs.
+        tr = tracking.status()
+        if tr["enabled"]:
             st.markdown(
-                f'<p style="font-size:.68rem;color:#5C7089;text-align:right;'
-                f'padding-top:.5rem">v{__version__}</p>',
-                unsafe_allow_html=True,
+                ui.chips([("MLflow tracking", "ok")]), unsafe_allow_html=True
             )
+            st.caption(tr["tracking_uri"])
+        else:
+            st.markdown(
+                ui.chips([("tracking off", "")]), unsafe_allow_html=True
+            )
+            st.caption(tr["reason"] or "")
+
+        if st.button("↻ Refresh all data", use_container_width=True):
+            with st.spinner("Fetching upstream data and refitting models…"):
+                try:
+                    report = refresh.refresh_all(force=True, do_forecast=True)
+                except Exception as exc:  # noqa: BLE001 - surfaced in the UI
+                    st.error(f"Refresh failed: {exc}")
+                else:
+                    # Clear every warehouse-backed cache so the next read is fresh.
+                    load_warehouse.clear()
+                    warehouse_summary.clear()
+                    warehouse_metadata.clear()
+                    cached_forecast.clear()
+                    st.success(
+                        f"Refreshed {report.series_loaded}/{report.series_total} series, "
+                        f"{report.forecasts_written} forecasts in "
+                        f"{report.duration_seconds:.0f}s"
+                    )
+                    st.rerun()
 
         st.divider()
         st.markdown(
@@ -208,11 +249,11 @@ means the model beats a naive forecast.
                 """
             )
 
-        failed_specs = [s for s in statuses if s["state"] == "failed"]
-        if failed_specs:
-            with st.expander(f"⚠ {len(failed_specs)} unavailable series", expanded=False):
-                for s in failed_specs:
-                    st.caption(f"**{s.get('label', s['key'])}** — {s.get('error', 'failed')}")
+        missing = [s for s in SERIES if s.key not in stored_keys]
+        if missing:
+            with st.expander(f"⚠ {len(missing)} series not in the warehouse", expanded=False):
+                for spec in missing:
+                    st.caption(f"**{spec.label}** — `{spec.key}` has no stored observations")
 
 
 # ---------------------------------------------------------------------------
@@ -345,7 +386,8 @@ def _overview_narrative(data: dict[str, pd.Series]) -> str:
 
     if "gdp_growth" in data:
         s = data["gdp_growth"]
-        latest, prior = s.iloc[-1], s.iloc[-2] if len(s) > 1 else latest
+        latest = s.iloc[-1]
+        prior = s.iloc[-2] if len(s) > 1 else latest
         direction = "faster" if latest > prior else "slower"
         points.append(
             f"The economy grew <b>{latest:.2f}%</b> in {s.index[-1].year}, "
@@ -620,8 +662,6 @@ def view_forecast(data: dict[str, pd.Series], specs_by_key):
         with c2:
             model_options = model_names(freq, thorough=True, long_series=True)
             model_choice = st.selectbox("Model", model_options, index=0)
-        with c3:
-            use_window_obs = window_years * ppy if window_years else 0
 
     window_obs = (window_years * ppy) if window_years else 0
 
@@ -938,13 +978,55 @@ def view_compare(data: dict[str, pd.Series], specs_by_key):
 # ---------------------------------------------------------------------------
 # View: Custom dashboard
 # ---------------------------------------------------------------------------
+def _session_owner() -> str:
+    """Identify the owner of saved dashboards.
+
+    Uses a per-session token held in Streamlit's session state. This is a
+    deliberate placeholder: it gives each browser its own namespace without
+    requiring accounts. It is NOT authentication — anyone reaching the app gets
+    a fresh namespace, and there is no protection between users. Replace with
+    real auth before exposing saved dashboards beyond a trusted audience.
+    """
+    if "owner_id" not in st.session_state:
+        import uuid
+
+        st.session_state["owner_id"] = f"session-{uuid.uuid4().hex[:12]}"
+    return st.session_state["owner_id"]
+
+
 def view_custom(data: dict[str, pd.Series], specs_by_key):
     st.markdown(
-        ui.section("My dashboard", "build your own view — layout, tiles and charts"),
+        ui.section("My dashboard", "build your own view, then save it for later"),
         unsafe_allow_html=True,
     )
 
     available = [s for s in SERIES if s.key in data]
+    owner = _session_owner()
+
+    # --- saved layouts ----------------------------------------------------
+    saved = store.list_dashboards(owner)
+    if not saved.empty:
+        cols = st.columns([3, 1])
+        with cols[0]:
+            choice = st.selectbox(
+                "Load a saved dashboard",
+                options=["— new / unsaved —"] + saved["name"].tolist(),
+                label_visibility="collapsed",
+            )
+        with cols[1]:
+            if choice != "— new / unsaved —" and st.button(
+                "Delete", use_container_width=True
+            ):
+                store.delete_dashboard(owner, choice)
+                st.rerun()
+
+        if choice != "— new / unsaved —":
+            loaded = store.get_dashboard(owner, choice)
+            if loaded:
+                st.session_state["custom_keys"] = loaded.get("keys", [])
+                st.session_state["custom_layout"] = loaded.get("layout", 3)
+                st.session_state["custom_style"] = loaded.get("style", "Area line")
+                st.session_state["custom_window"] = loaded.get("window", 10)
 
     with st.expander("Configure your dashboard", expanded=True):
         c1, c2 = st.columns([2, 1])
@@ -960,15 +1042,50 @@ def view_custom(data: dict[str, pd.Series], specs_by_key):
             )
             st.session_state["custom_keys"] = picked
         with c2:
-            layout = st.selectbox("Columns", [2, 3, 4], index=1)
-            chart_type = st.selectbox("Chart style", ["Area line", "Bars", "Sparkline"])
+            styles = ["Area line", "Bars", "Sparkline"]
+            layouts = [2, 3, 4]
+            layout = st.selectbox(
+                "Columns",
+                layouts,
+                index=layouts.index(st.session_state.get("custom_layout", 3)),
+            )
+            chart_type = st.selectbox(
+                "Chart style",
+                styles,
+                index=styles.index(st.session_state.get("custom_style", "Area line")),
+            )
 
         window_choice = st.select_slider(
             "History window",
             options=[2, 5, 10, 25, 0],
-            value=10,
+            value=st.session_state.get("custom_window", 10),
             format_func=lambda v: "All" if v == 0 else f"{v}y",
         )
+
+        # --- save ---------------------------------------------------------
+        save_cols = st.columns([2, 1])
+        with save_cols[0]:
+            save_name = st.text_input(
+                "Save as",
+                placeholder="name this dashboard, e.g. Inflation watch",
+                label_visibility="collapsed",
+            )
+        with save_cols[1]:
+            if st.button(
+                "Save dashboard", use_container_width=True, disabled=not save_name.strip()
+            ):
+                store.save_dashboard(
+                    owner,
+                    save_name.strip(),
+                    {
+                        "keys": picked,
+                        "layout": layout,
+                        "style": chart_type,
+                        "window": window_choice,
+                    },
+                )
+                st.success(f"Saved “{save_name.strip()}”")
+                st.rerun()
 
     if not picked:
         st.info("Select one or more series above to build your dashboard.")
@@ -1052,29 +1169,165 @@ def view_custom(data: dict[str, pd.Series], specs_by_key):
 
 
 # ---------------------------------------------------------------------------
-# Main
+# View: Downloads — always generated from live data
 # ---------------------------------------------------------------------------
-def main():
-    force = st.session_state.pop("force_refresh", False)
-
-    with st.spinner("Loading South African statistics…"):
-        data, statuses = cached_load(force, 12.0)
-
-    specs_by_key = {s.key: s for s in SERIES}
-
-    ok = [s for s in statuses if s["state"] in ("live", "cache")]
-    total_obs = sum(len(v) for v in data.values())
-    as_of = datetime.now().strftime("%d %b %Y, %H:%M")
-    source_names = sorted({provider_of(specs_by_key[s["key"]]) for s in ok if s["key"] in specs_by_key})
-
+def view_downloads(summary: dict):
     st.markdown(
-        ui.brand_bar(f"{len(ok)}/{len(statuses)} series", as_of, total_obs),
+        ui.section("Downloads", "every artefact is built from the live data when you click"),
         unsafe_allow_html=True,
     )
 
-    sidebar(statuses)
+    st.markdown(
+        ui.insight(
+            "Generated on demand",
+            f"These files are rendered from the warehouse at request time — "
+            f"<b>{summary['observations']:,}</b> observations and "
+            f"<b>{summary['forecasts']}</b> forecast runs, as of "
+            f"<b>{pd.Timestamp(summary['last_ingest']).strftime('%d %b %Y %H:%M') if summary.get('last_ingest') else 'never'}</b>. "
+            f"Nothing here is a stale build artefact.",
+        ),
+        unsafe_allow_html=True,
+    )
 
-    tabs = st.tabs(["Overview", "Explore", "Forecast lab", "Compare", "My dashboard"])
+    left, right = st.columns(2, gap="medium")
+
+    with left:
+        st.markdown(
+            ui.panel_open(
+                "Power BI model",
+                "star schema CSVs, TMSL model, and 17 DAX measures",
+            ),
+            unsafe_allow_html=True,
+        )
+        try:
+            payload = downloads.powerbi_bundle()
+            # `summary` is the warehouse-level dict, which has no per-export row
+            # counts; read them from the download layer instead of assuming keys.
+            stats = downloads.summary()
+            st.caption(
+                f"{len(payload):,} bytes · {stats['indicators']} indicators · "
+                f"{stats['powerbi_rows']:,} fact rows · {stats['forecast_rows']:,} forecast rows"
+            )
+            st.download_button(
+                "Download Power BI bundle",
+                payload,
+                file_name="sa-insights-powerbi.zip",
+                mime="application/zip",
+                use_container_width=True,
+            )
+        except Exception as exc:  # noqa: BLE001 - never break the page over a download
+            st.error(f"Could not build the bundle: {exc}")
+        st.markdown(ui.PANEL_CLOSE, unsafe_allow_html=True)
+
+        st.markdown(
+            ui.panel_open("Observations", "the raw measurements behind every chart"),
+            unsafe_allow_html=True,
+        )
+        st.download_button(
+            "Download observations CSV",
+            downloads.observations_csv(),
+            file_name="sa-insights-observations.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+        st.markdown(ui.PANEL_CLOSE, unsafe_allow_html=True)
+
+    with right:
+        st.markdown(
+            ui.panel_open(
+                "Apache Ossie semantic model",
+                "validated against the official JSON Schema",
+            ),
+            unsafe_allow_html=True,
+        )
+        try:
+            st.download_button(
+                "Ossie 0.1.1 · YAML",
+                downloads.ossie_yaml(),
+                file_name="sa_insights.ossie.yaml",
+                mime="text/yaml",
+                use_container_width=True,
+            )
+            st.download_button(
+                "Ossie 0.1.1 · JSON",
+                downloads.ossie_json(),
+                file_name="sa_insights.ossie.json",
+                mime="application/json",
+                use_container_width=True,
+            )
+            st.download_button(
+                "Ossie 0.2.0 draft · YAML",
+                downloads.ossie_yaml(downloads.DRAFT_VERSION),
+                file_name="sa_insights.ossie-draft.yaml",
+                mime="text/yaml",
+                use_container_width=True,
+            )
+            st.caption(
+                "0.1.1 is the released shape; 0.2.0 draft is the flat form that "
+                "the published schema validates."
+            )
+        except Exception as exc:  # noqa: BLE001
+            st.error(f"Could not build the semantic model: {exc}")
+        st.markdown(ui.PANEL_CLOSE, unsafe_allow_html=True)
+
+        st.markdown(
+            ui.panel_open("Forecasts", "runs with model, MASE and prediction bands"),
+            unsafe_allow_html=True,
+        )
+        st.download_button(
+            "Download forecasts CSV",
+            downloads.forecasts_csv(),
+            file_name="sa-insights-forecasts.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+        st.markdown(ui.PANEL_CLOSE, unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+def main():
+    # First run on a fresh volume: populate before rendering anything, so the
+    # page never opens empty.
+    if not store.is_initialised():
+        st.markdown(ui.brand_bar("bootstrap", "loading", 0), unsafe_allow_html=True)
+        with st.spinner("First run — collecting data and fitting models. This takes a minute…"):
+            try:
+                report = refresh.refresh_all(force=True, do_forecast=True)
+                st.success(
+                    f"Loaded {report.series_loaded} series and "
+                    f"{report.forecasts_written} forecasts."
+                )
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"Initial data load failed: {exc}")
+                st.stop()
+        st.rerun()
+
+    token = data_token()
+    data = load_warehouse(token)
+    summary = warehouse_summary(token)
+    meta = warehouse_metadata(token)
+
+    specs_by_key = {s.key: s for s in SERIES}
+
+    total_obs = summary["observations"]
+    as_of = (
+        pd.Timestamp(summary["last_ingest"]).strftime("%d %b %Y, %H:%M")
+        if summary.get("last_ingest")
+        else "unknown"
+    )
+
+    st.markdown(
+        ui.brand_bar(f"{summary['series']}/{len(SERIES)} series", as_of, total_obs),
+        unsafe_allow_html=True,
+    )
+
+    sidebar(summary, meta, set(data.keys()))
+
+    tabs = st.tabs(
+        ["Overview", "Explore", "Forecast lab", "Compare", "My dashboard", "Downloads"]
+    )
     with tabs[0]:
         view_overview(data, specs_by_key)
     with tabs[1]:
@@ -1085,12 +1338,16 @@ def main():
         view_compare(data, specs_by_key)
     with tabs[4]:
         view_custom(data, specs_by_key)
+    with tabs[5]:
+        view_downloads(summary)
 
+    sources = sorted({provider_of(s) for s in SERIES})
     st.markdown(
         f'<p style="font-size:.7rem;color:#5C7089;text-align:center;margin-top:2.5rem;'
         f'padding-top:1rem;border-top:1px solid rgba(148,163,184,.16)">'
-        f'SA Insights v{__version__} · {len(ok)} live series · {total_obs:,} observations · '
-        f'sources: World Bank, IMF (IFS &amp; WEO), FRED · '
+        f'SA Insights · {summary["series"]} series · {total_obs:,} observations · '
+        f'{summary["forecasts"]} forecast runs · '
+        f'sources: {" · ".join(sources)} · '
         f'forecasts are statistical extrapolations, not predictions of policy or events.'
         f"</p>",
         unsafe_allow_html=True,
