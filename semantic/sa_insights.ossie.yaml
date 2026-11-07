@@ -3742,7 +3742,7 @@ semantic_model:
       as each fact's observation_count metric.
   custom_extensions:
   - vendor_name: SA_INSIGHTS
-    data: '{"generated_at": "2026-11-07T21:16:30+00:00", "document_version": "0.1.1", "series_count":
+    data: '{"generated_at": "2026-11-07T21:23:18+00:00", "document_version": "0.1.1", "series_count":
       34, "generator": "scripts/build_semantic_model.py", "note": "0.1.1 is the released shape (semantic_model
       array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema
       is unstable."}'

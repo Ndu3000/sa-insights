@@ -88,9 +88,23 @@ def _from_warehouse(only_featured: bool) -> dict | None:
             continue
 
         try:
-            leaderboard = json.loads(head.get("leaderboard") or "[]")
+            raw_board = json.loads(head.get("leaderboard") or "[]")
         except (json.JSONDecodeError, TypeError):
-            leaderboard = []
+            raw_board = []
+
+        # Normalise to lowercase keys. The warehouse stores the DataFrame's own
+        # column names ("Model", "Family", "MASE"); consumers here expect the
+        # lowercase form, and emitting both conventions caused a silent blank
+        # column on the page.
+        leaderboard = [
+            {
+                "model": row.get("Model", row.get("model")),
+                "family": row.get("Family", row.get("family")),
+                "mase": row.get("MASE", row.get("mase")),
+            }
+            for row in raw_board
+            if isinstance(row, dict)
+        ]
 
         skill = head.get("skill_vs_naive")
         mase = head.get("mase")

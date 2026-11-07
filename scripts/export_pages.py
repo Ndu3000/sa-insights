@@ -373,24 +373,35 @@ def fm_winners_table() -> str:
 
     wins.sort(key=lambda kv: -(kv[1].get("skill_vs_naive") or 0))
 
+    def _field(entry: dict, name: str):
+        """Read a leaderboard field under either key convention.
+
+        Leaderboards written by the live pipeline carry the DataFrame column
+        names ("Model", "Family", "MASE"); ones from the older compute path used
+        lowercase. Reading only one silently blanked the runner-up column.
+        """
+        for candidate in (name, name.lower(), name.capitalize()):
+            if candidate in entry:
+                return entry[candidate]
+        return None
+
     rows = []
     for key, v in wins:
-        # .get, not []: leaderboards written by an older build (or by the
-        # live-compute path) may omit "family", and a missing key must not take
-        # down the whole page render.
         runner_up = next(
             (
                 m
                 for m in v.get("leaderboard", [])
-                if m.get("family") != "foundation model" and m.get("mase") is not None
+                if _field(m, "family") != "foundation model"
+                and _field(m, "mase") is not None
             ),
             None,
         )
-        runner_txt = (
-            f"{html.escape(str(runner_up.get('model', '—')))} ({runner_up['mase']:.2f})"
-            if runner_up
-            else "—"
-        )
+        if runner_up:
+            rival_mase = _field(runner_up, "mase")
+            rival_name = _field(runner_up, "model") or "—"
+            runner_txt = f"{html.escape(str(rival_name))} ({rival_mase:.2f})"
+        else:
+            runner_txt = "—"
         skill = v.get("skill_vs_naive")
         rows.append(
             f"<tr><td>{html.escape(v['label'])}</td>"
