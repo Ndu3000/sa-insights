@@ -1226,6 +1226,151 @@
       ]
     },
     {
+      "name": "fct_real_gdp_q",
+      "source": "sa_insights.fct_real_gdp_q",
+      "primary_key": [
+        "period"
+      ],
+      "unique_keys": [
+        [
+          "period"
+        ]
+      ],
+      "description": "Quarterly real GDP at constant prices, seasonally adjusted. Covers 1993-01 to 2026-01.",
+      "ai_context": {
+        "synonyms": [
+          "real gdp (quarterly)",
+          "real gdp"
+        ],
+        "examples": [
+          "What is the latest real gdp?",
+          "Show real gdp (quarterly) by quarter over the last five years",
+          "Is real gdp (quarterly) improving?"
+        ]
+      },
+      "fields": [
+        {
+          "name": "period",
+          "expression": {
+            "sql": "period"
+          },
+          "datatype": "Date",
+          "dimension": {
+            "is_time": true
+          },
+          "description": "Observation period for Real GDP (quarterly).",
+          "ai_context": {
+            "synonyms": [
+              "date",
+              "month",
+              "quarter",
+              "year"
+            ]
+          }
+        },
+        {
+          "name": "value",
+          "expression": {
+            "sql": "value"
+          },
+          "datatype": "Float",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Observed value of Real GDP (quarterly), measured in R million.",
+          "ai_context": {
+            "synonyms": [
+              "reading",
+              "observation",
+              "level"
+            ]
+          }
+        },
+        {
+          "name": "series_key",
+          "expression": {
+            "sql": "series_key"
+          },
+          "datatype": "String",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Stable identifier of the indicator."
+        },
+        {
+          "name": "unit",
+          "expression": {
+            "sql": "unit"
+          },
+          "datatype": "String",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Unit of measurement for the value field."
+        }
+      ],
+      "metrics": [
+        {
+          "name": "value_average",
+          "expression": {
+            "sql": "AVG(value)"
+          },
+          "datatype": "Float",
+          "description": "Mean Real GDP (quarterly) across the selected periods.",
+          "ai_context": {
+            "synonyms": [
+              "mean",
+              "average"
+            ]
+          }
+        },
+        {
+          "name": "value_min",
+          "expression": {
+            "sql": "MIN(value)"
+          },
+          "datatype": "Float",
+          "description": "Lowest Real GDP (quarterly) in the selected periods."
+        },
+        {
+          "name": "value_max",
+          "expression": {
+            "sql": "MAX(value)"
+          },
+          "datatype": "Float",
+          "description": "Highest Real GDP (quarterly) in the selected periods."
+        },
+        {
+          "name": "value_standard_deviation",
+          "expression": {
+            "sql": "STDDEV(value)"
+          },
+          "datatype": "Float",
+          "description": "Dispersion of Real GDP (quarterly) across the selected periods.",
+          "ai_context": {
+            "synonyms": [
+              "volatility",
+              "standard deviation"
+            ]
+          }
+        },
+        {
+          "name": "observation_count",
+          "expression": {
+            "sql": "COUNT(value)"
+          },
+          "datatype": "Integer",
+          "description": "Number of non-missing observations in the selection."
+        }
+      ],
+      "custom_extensions": [
+        {
+          "vendor_name": "SA_INSIGHTS",
+          "data": "{\"series_key\": \"real_gdp_q\", \"label\": \"Real GDP (quarterly)\", \"short_label\": \"Real GDP\", \"category\": \"Growth & Output\", \"unit\": \"R million\", \"frequency\": \"Q\", \"provider\": \"fred\", \"higher_is_better\": true, \"upstream_indicator\": \"NGDPRSAXDCZAQ\", \"observations\": 133, \"first_period\": \"1993-01-01\", \"last_period\": \"2026-01-01\", \"last_value\": 1193022.7}"
+        }
+      ]
+    },
+    {
       "name": "fct_cpi_yoy",
       "source": "sa_insights.fct_cpi_yoy",
       "primary_key": [
@@ -5099,6 +5244,20 @@
       }
     },
     {
+      "name": "fct_real_gdp_q_to_dim_date_quarter",
+      "from": "fct_real_gdp_q",
+      "to": "dim_date_quarter",
+      "from_columns": [
+        "period"
+      ],
+      "to_columns": [
+        "period"
+      ],
+      "ai_context": {
+        "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+      }
+    },
+    {
       "name": "fct_cpi_yoy_to_dim_date_month",
       "from": "fct_cpi_yoy",
       "to": "dim_date_month",
@@ -5538,7 +5697,7 @@
   "custom_extensions": [
     {
       "vendor_name": "SA_INSIGHTS",
-      "data": "{\"generated_at\": \"2026-11-07T21:08:23+00:00\", \"document_version\": \"0.2.0.dev0\", \"series_count\": 33, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
+      "data": "{\"generated_at\": \"2026-11-07T21:16:30+00:00\", \"document_version\": \"0.2.0.dev0\", \"series_count\": 34, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
     }
   ]
 }
