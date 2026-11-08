@@ -109,6 +109,12 @@ def _facts_block(question: str, evidence: answers.Evidence) -> str:
         if latest.get("value") is None:
             continue
 
+        # Changes carry an explicit unit. Without it the model wrote "the repo
+        # rate has risen by 0.75" with no unit at all — the value was right and
+        # the sentence was still wrong.
+        is_rate = "%" in (unit or "")
+        delta_unit = " percentage points" if is_rate else (f" {unit}" if unit else "")
+
         parts = [
             f"- {label} ({key}): latest {num(latest.get('value'))}{unit} "
             f"at {latest.get('period')}"
@@ -117,12 +123,12 @@ def _facts_block(question: str, evidence: answers.Evidence) -> str:
             parts.append(f"higher_is_better={higher}")
         if yoy.get("absolute") is not None:
             parts.append(
-                f"change over 12 months: {float(yoy['absolute']):+.2f} "
+                f"change over 12 months: {float(yoy['absolute']):+.2f}{delta_unit} "
                 f"(from {num(yoy.get('from_value'))}{unit} at {yoy.get('from_period')})"
             )
         if since.get("absolute") is not None:
             parts.append(
-                f"change over window: {float(since['absolute']):+.2f} "
+                f"change over window: {float(since['absolute']):+.2f}{delta_unit} "
                 f"(from {num(since.get('from_value'))}{unit} at {since.get('from_period')})"
             )
         forecast = evidence.forecasts.get(key)
