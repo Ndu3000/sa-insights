@@ -50,6 +50,12 @@ dev = [
     "pyflakes>=3.0",
 ]
 
+# Serverless deployment (see modal_app.py). Kept separate because the CLI is
+# only needed on the machine that runs `modal deploy`, not at runtime.
+deploy = [
+    "modal>=1.0",
+]
+
 # ---------------------------------------------------------------------------
 # Package sources
 # ---------------------------------------------------------------------------

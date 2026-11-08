@@ -83,6 +83,37 @@ at runtime even when installed.
 
 ---
 
+## Serverless refresh on Modal
+
+GitHub Actions cannot run on this account (see [Why the Actions workflow does
+not run](#why-the-actions-workflow-does-not-run)), so the daily refresh runs on
+Modal instead. Modal needs only a `git push` credential, which works
+independently of the Actions billing lock.
+
+```bash
+uv sync --extra deploy                    # installs the modal CLI
+uv run modal setup                        # interactive login
+uv run modal secret create github-token GITHUB_TOKEN=<fine-grained PAT>
+uv run modal deploy modal_app.py          # cron + optional dashboard
+uv run modal run modal_app.py::refresh_and_publish   # trigger now
+```
+
+The PAT needs **Contents: write** on the repository. It is read from the Modal
+secret at runtime and never baked into an image layer.
+
+- `refresh_and_publish` — cron at 05:15 UTC (07:15 SAST). Fetches, forecasts,
+  renders every artefact and pushes to `main`, after which Pages serves the new
+  snapshot.
+- `dashboard` — optional public Streamlit URL. Idle containers cost nothing; the
+  first visit after idle pays a cold start (torch import + Chronos weights).
+
+The DuckDB warehouse lives on a Modal Volume (`sa-insights-data`), so it
+survives redeploys — unlike a Hugging Face Space, whose disk resets on restart.
+
+MLflow is deliberately left unconfigured on Modal: without a tracking URI the
+tracer degrades to a no-op. Setting one would make the dashboard advertise a UI
+URL that no public host can serve, which is the dead-link bug fixed earlier.
+
 ## Model tracking (MLflow)
 
 Tracking is **gated on `MLFLOW_TRACKING_URI`**. With no URI set, every tracking
