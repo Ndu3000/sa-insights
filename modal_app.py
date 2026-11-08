@@ -165,10 +165,17 @@ def _sync_repo() -> None:
             raise RuntimeError(f"git {args[0]} failed: {proc.stderr.strip()}")
 
     # Re-assert the deployed copy after the reset overwrites the working tree.
+    #
+    # The path is resolved before comparing: __file__ can be relative or carry a
+    # different case on Windows, and comparing it directly to the destination
+    # produced "are the same file" — which silently skipped the restore.
     try:
         import shutil
 
-        shutil.copyfile(os.path.abspath(__file__), f"{REPO_PATH}/modal_app.py")
+        source = os.path.realpath(__file__)
+        target = os.path.realpath(f"{REPO_PATH}/modal_app.py")
+        if source != target:
+            shutil.copyfile(source, target)
     except OSError as exc:
         print(f"warning: could not restore modal_app.py after reset ({exc})")
 
