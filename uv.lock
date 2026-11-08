@@ -3659,6 +3659,10 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+chat = [
+    { name = "fastapi" },
+    { name = "uvicorn" },
+]
 deploy = [
     { name = "modal" },
 ]
@@ -3683,6 +3687,7 @@ requires-dist = [
     { name = "apscheduler", specifier = ">=3.10" },
     { name = "chronos-forecasting", marker = "extra == 'fm'", specifier = ">=2.0" },
     { name = "duckdb", specifier = ">=1.1" },
+    { name = "fastapi", marker = "extra == 'chat'", specifier = ">=0.110" },
     { name = "jsonschema", specifier = ">=4.0" },
     { name = "mlflow", specifier = ">=3.0" },
     { name = "modal", marker = "extra == 'deploy'", specifier = ">=1.0" },
@@ -3699,8 +3704,9 @@ requires-dist = [
     { name = "statsmodels", specifier = ">=0.14" },
     { name = "streamlit", specifier = ">=1.36" },
     { name = "torch", marker = "extra == 'fm'", specifier = ">=2.2", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "uvicorn", marker = "extra == 'chat'", specifier = ">=0.29" },
 ]
-provides-extras = ["fm", "dev", "deploy"]
+provides-extras = ["fm", "dev", "chat", "deploy"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pyflakes", specifier = ">=4.1.0" }]
