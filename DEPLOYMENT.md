@@ -330,6 +330,57 @@ The suite asserts policies, not prose: answered when answerable, clarified when
 genuinely open, refused when off-topic, and never a figure that fails
 verification.
 
+### Evaluation and the deploy gate
+
+Unit tests cannot catch the failures this chatbot actually has. "Unemployment
+answered with the bond yield" is not an exception — it is a plausible, cited
+answer about the wrong indicator. Those need a scored dataset.
+
+`scripts/eval_chat.py` runs **10 cases, each named after a bug that shipped**:
+
+```bash
+uv run python scripts/eval_chat.py            # run, log to MLflow
+uv run python scripts/eval_chat.py --no-log   # local only
+```
+
+| Scorer | What it proves |
+|--------|----------------|
+| `pass_rate` | all assertions hold |
+| `kind_accuracy` | answer / clarify / refuse chosen correctly |
+| `series_accuracy` | the expected series was retrieved |
+| `no_false_series_rate` | no answer named a series it must not |
+| `verified_rate` | every figure traceable to a tool |
+| `avg_latency_ms` | guard against a slow retrieval change |
+
+Results land in the `sa-insights-chat-eval` MLflow experiment, so a regression
+has a history and a diff.
+
+**Why not `mlflow.genai`'s LLM judges?** They call a judge model per row. Here
+the guarantees are already deterministic — `verify_numbers` proves every figure
+came from a tool, and the expected series is known exactly — so a judge would be
+slower, costlier and less reliable at the two things that matter. `mlflow.genai`
+is the right tool for open-ended prose quality later; it is the wrong tool for
+"did it pick the right series".
+
+#### The gate
+
+```bash
+uv run python scripts/deploy.py              # gate, then deploy
+uv run python scripts/deploy.py --skip-gate  # deliberate override
+uv run python scripts/deploy_gate.py         # gate only
+```
+
+A deploy is **blocked** by any of:
+
+1. pass rate below the threshold (default 0.9)
+2. an answer naming a forbidden series — worse than a refusal, because it is
+   confidently wrong *and* fully cited
+3. an unverified number — the core guarantee, never negotiable
+
+A blocked deploy still logs its MLflow run: the failed run is the one worth
+reading. `--skip-gate` exists so a broken evaluator cannot stop all work, and it
+prints a warning so the decision is visible.
+
 ## Model tracking (MLflow)
 
 Tracking is **gated on `MLFLOW_TRACKING_URI`**. With no URI set, every tracking
