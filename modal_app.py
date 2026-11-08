@@ -109,6 +109,18 @@ image = (
     # that was deployed authoritative, and /root covers the other sys.path entry.
     .add_local_file(__file__, f"{REPO_PATH}/modal_app.py", copy=True)
     .add_local_file(__file__, "/root/modal_app.py", copy=True)
+    # Ship the application source too, so a deploy that changes only sa_insights/
+    # produces a new image version.
+    #
+    # Without this the image content depends solely on the build-time git clone,
+    # so `modal deploy` reported "no changes detected" for a code change and warm
+    # containers kept serving the previous commit — the source of a long, circular
+    # debugging session where fixes appeared not to work. Adding the local tree
+    # makes the deployed artefact self-describing: change the code, get a new
+    # image, and old containers are retired automatically.
+    .add_local_dir("sa_insights", f"{REPO_PATH}/sa_insights", copy=True)
+    .add_local_file("app.py", f"{REPO_PATH}/app.py", copy=True)
+    .add_local_dir("scripts", f"{REPO_PATH}/scripts", copy=True)
     # uv.lock pins every transitive version, so builds are reproducible. The
     # `fm` extra installs CPU torch + chronos-forecasting via [tool.uv.sources].
     #
