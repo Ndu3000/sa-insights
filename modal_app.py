@@ -34,6 +34,7 @@ Modal secret at runtime and never written into an image layer.
 
 from __future__ import annotations
 
+import shlex
 import subprocess
 
 import modal
@@ -96,9 +97,16 @@ image = (
     # Build-time assertion. A missing torch/chronos previously showed up only as
     # a soft "foundation model unavailable" notice at runtime and stayed hidden
     # for days, so fail the build instead.
+    #
+    # Written as a single literal string on purpose: the closing quote must be
+    # part of the command, and building it by concatenating pieces silently
+    # dropped it once already (sh: Unterminated quoted string).
     .run_commands(
-        f'{VENV}/bin/python -c "import torch, chronos, duckdb, numpy; '
-        "print('imports ok, torch', torch.__version__)"
+        f"{VENV}/bin/python -c "
+        + shlex.quote(
+            "import torch, chronos, duckdb, numpy; "
+            "print('imports ok, torch', torch.__version__)"
+        )
     )
 )
 
