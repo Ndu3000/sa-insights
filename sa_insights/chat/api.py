@@ -23,10 +23,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from .agent import Agent, Session
-from . import tools
+from . import llm, tools
+
+
+def _make_agent() -> Agent:
+    """Build the agent, enabling the language model only if a key is present.
+
+    Passing the phraser as a callback (rather than having the agent import it)
+    keeps ``agent.py`` free of any network dependency: with no key the agent is
+    fully deterministic, and the same code path is exercised either way.
+    """
+    if llm.available():
+        print(f"chat: using {llm.DEFAULT_MODEL} for phrasing")
+        return Agent(llm=llm.phrase)
+    print("chat: no GEMINI_API_KEY; using the deterministic composer")
+    return Agent()
+
 
 # One process-wide agent, so the graph is built once rather than per request.
-_AGENT = Agent()
+_AGENT = _make_agent()
 
 # Sessions are keyed by a client-supplied id. In-memory and bounded: this is a
 # public, unauthenticated demo endpoint, so durable conversation storage would be

@@ -67,6 +67,21 @@ data_vol = modal.Volume.from_name("sa-insights-data", create_if_missing=True)
 mlflow_vol = modal.Volume.from_name("sa-insights-mlflow", create_if_missing=True)
 
 
+def _optional_secrets() -> list:
+    """Attach the Gemini secret only if it exists.
+
+    Modal resolves named secrets at deploy time and fails the whole deploy if one
+    is missing, so an unconditional reference would break every deploy until the
+    key is created. The model is a nicety here, not a requirement, so its absence
+    must not block shipping.
+    """
+    try:
+        return [modal.Secret.from_name("gemini-api-key")]
+    except Exception:  # noqa: BLE001 - missing secret is an expected state
+        print("deploy: gemini-api-key secret absent; chat uses the deterministic composer")
+        return []
+
+
 # --------------------------------------------------------------------------- #
 # Image
 # --------------------------------------------------------------------------- #
@@ -371,6 +386,8 @@ def refresh_and_publish() -> dict:
 @app.function(
     image=image,
     volumes={DATA_PATH: data_vol},
+    # Optional: improves the chat tab's prose only. Its absence is harmless.
+    secrets=_optional_secrets(),
     timeout=60 * 30,
     # Keep a warm container briefly after the last visitor: long enough that a
     # user clicking around does not re-pay the cold start, short enough that an
@@ -429,6 +446,10 @@ def dashboard() -> None:
     # The chat reads the warehouse, so it needs the same Volume the refresh
     # writes. Without it every question would refuse: no data, nothing to say.
     volumes={DATA_PATH: data_vol},
+    # Optional: only used to make the prose read better. With no secret the
+    # chatbot still answers correctly from the deterministic composer, so this
+    # being absent is a degradation in style, not in capability.
+    secrets=_optional_secrets(),
     timeout=60 * 10,
     # Short window: each container holds a cached graph and session map, and a
     # question costs well under a second to answer, so there is nothing to keep
@@ -441,10 +462,10 @@ def dashboard() -> None:
 def chat_api() -> None:
     """Serve the grounded Q&A API on ``*.modal.run``.
 
-    No MLflow and no language-model secret: the answer path is fully
-    deterministic, so this runs with no external credentials at all. The model,
-    when enabled later, is optional by construction — ``agent.Agent`` produces
-    the same verified answer without one.
+    The numbers are always deterministic. If ``GEMINI_API_KEY`` is present the
+    model rewrites the verified facts into prose; without it the deterministic
+    composer answers, and ``verify_numbers`` still rejects any invented figure
+    either way.
     """
     _sync_repo()
 

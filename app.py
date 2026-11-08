@@ -1304,9 +1304,14 @@ def _chat_agent():
     shared object leaking conversation state between browsers.
     """
     if "chat_agent" not in st.session_state:
+        from sa_insights.chat import llm
         from sa_insights.chat.agent import Agent
 
-        st.session_state.chat_agent = Agent()
+        # The model is optional. With no key the deterministic composer answers,
+        # and the numbers are identical either way — only the prose differs.
+        st.session_state.chat_agent = (
+            Agent(llm=llm.phrase) if llm.available() else Agent()
+        )
     return st.session_state.chat_agent
 
 
