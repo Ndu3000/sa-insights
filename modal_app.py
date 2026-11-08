@@ -179,6 +179,22 @@ def _sync_repo() -> None:
     except OSError as exc:
         print(f"warning: could not restore modal_app.py after reset ({exc})")
 
+    # Record which commit is now checked out, and say so in the logs.
+    #
+    # A warm container keeps running whatever this reset produced the moment it
+    # started, so a deploy can look successful while the public URL still serves
+    # old code. Without the SHA in the log there is no way to distinguish
+    # "running the new build" from "running a build from two hours ago" — the
+    # same configured-versus-working confusion that once hid missing MLflow runs.
+    head = subprocess.run(
+        ["git", "rev-parse", "--short", "HEAD"],
+        cwd=REPO_PATH,
+        capture_output=True,
+        text=True,
+    )
+    if head.returncode == 0:
+        print(f"repo: synced to {head.stdout.strip()}", flush=True)
+
 
 def _mlflow_env() -> dict[str, str]:
     """Resolve MLflow's public URL and configure tracking for this process.
