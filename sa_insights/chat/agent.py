@@ -46,12 +46,32 @@ _VAGUE = re.compile(
 )
 
 # A window the user named explicitly, so we do not have to ask for one.
+#
+# The trailing `(?:\s+ago)?` matters: "CPI like 10 years ago compared to now"
+# puts the number *after* the preposition, and the original pattern only matched
+# "since 2010" style phrasing. Missing it silently fell back to a 5-year default
+# window and answered a different question than the one asked.
 _EXPLICIT_WINDOW = re.compile(
-    r"\b(?:since|from|over|past|last|in)\s+(\d{4}|\d+\s*(?:year|month|quarter)s?)\b",
+    r"\b(?:since|from|over|past|last|in|like|about|around)?\s*"
+    r"(\d{4}|\d+\s*(?:year|month|quarter)s?)\s*(?:ago)?\b",
     re.IGNORECASE,
 )
 
-_MAX_RETRIEVED = 4
+# Does the question ask about movement over time? Only then does the composer
+# spend words on a window change. "What is CPI now?" wants one sentence; adding
+# "over the window it is down 0.5 pp" to that is noise, and doing it for four
+# series at once is how the answer became an unreadable wall.
+_CHANGE_SEEKING = re.compile(
+    r"\b(chang\w*|compar\w*|vs\.?|versus|trend\w*|ago|since|over|improv\w*|"
+    r"worsen\w*|better|worse|better|rose|rise|risen|fell|fall|fallen|increas\w*|decreas\w*|"
+    r"mov\w*|direction)\b",
+    re.IGNORECASE,
+)
+
+# How many series to fetch. Lowered from 4: four series x three sentences each
+# is twelve sentences, which is a report rather than an answer. Two is enough
+# to compare, and the primary series always gets the detail.
+_MAX_RETRIEVED = 3
 
 # Minimum lexical score for a question to count as being about this data at all.
 # Calibrated against the real graph: a genuine question lands well above 10
@@ -163,7 +183,7 @@ class Agent:
                 seeds = list(session.last_series)
 
         expansion = g.expand(seeds, hops=2) if seeds else {}
-        ranked = self._rank_series(expansion, seeds, g)
+        ranked = self._rank_series(expansion, seeds, g, text)
 
         evidence = self._gather(text, ranked, seeds)
 
@@ -231,13 +251,55 @@ class Agent:
         expansion: dict[str, float],
         seeds: list[str],
         g: graph_mod.Graph,
+        question: str = "",
     ) -> list[str]:
+        """Order candidate series so the one actually asked about comes first.
+
+        Graph expansion scores *relatedness*, not directness: asking about CPI
+        reached the repo rate and bond yield too, and bond yield happened to
+        score highest, so the answer led with the wrong series. What matters for
+        the lead sentence is which series the question *names*, so candidates are
+        re-ranked by direct vocabulary overlap with the question — the same
+        measure used for grounding, applied here for ordering.
+        """
         ranked = [key for key, _ in sorted(expansion.items(), key=lambda kv: -kv[1])]
         series = [key for key in ranked if g.nodes[key].kind == "series"]
-        # Seeds that are themselves series come first; a user who named a series
-        # means that series, not its neighbours.
         named = [key for key in seeds if g.nodes.get(key) and g.nodes[key].kind == "series"]
-        ordered = list(dict.fromkeys(named + series))
+        candidates = list(dict.fromkeys(named + series))
+
+        if not question:
+            return candidates[:_MAX_RETRIEVED]
+
+        query_terms = {t for t in graph_mod._tokens(question) if t.isalpha()}
+
+        def directness(key: str) -> tuple[int, int, float]:
+            node = g.nodes[key]
+            vocab = set(graph_mod._tokens(node.label))
+            for synonym in node.synonyms:
+                vocab |= set(graph_mod._tokens(synonym))
+            # Whole key also counts, so "usd_zar" matches "usd zar" phrasing.
+            vocab |= set(graph_mod._tokens(key.replace("_", " ")))
+            overlap = len(query_terms & vocab)
+            # Prefer observed data over projections. The IMF/WEO series carry
+            # labels like "IMF: unemployment" and their latest point is a *2031
+            # forecast*, so leading with them states a projection as though it
+            # were the current reading — the single most misleading thing this
+            # composer could do.
+            projected = 1 if _is_projection(node) else 0
+            return (projected, -overlap, -expansion.get(key, 0.0))
+
+        ordered = sorted(candidates, key=directness)
+
+        # Drop secondary series that share nothing with the question. "What is
+        # CPI now?" was pulling in the CPI *index* level as "for context", which
+        # says the same thing twice in different units and reads as noise.
+        relevant = [k for k in ordered if -directness(k)[1] > 0]
+        if relevant:
+            # Keep at most one zero-overlap series, and only if nothing else was
+            # named — otherwise the answer drifts off the question asked.
+            tail = [k for k in ordered if -directness(k)[1] == 0][:1]
+            ordered = relevant + (tail if len(relevant) < 2 else [])
+
         return ordered[:_MAX_RETRIEVED]
 
     # ------------------------------------------------------------------ #
@@ -252,10 +314,16 @@ class Agent:
                 # When the user named a window, honour it but still cap the
                 # resolution: "since 1980" on a monthly series is 550 points,
                 # which is more context than any reader or model needs.
+                #
+                # The default count is per frequency, not a flat 60. Sixty
+                # *annual* observations reached back to 1991 and produced
+                # "unemployment is up 9.25 pp since 1991" for a question asking
+                # whether it is getting better now — technically true, useless as
+                # an answer. Ten years is the comparison people actually mean.
                 snapshot = tools.get_series(
                     key,
                     since=window,
-                    periods=None if window else 60,
+                    periods=None if window else _default_periods(key),
                     max_points=MAX_CONTEXT_POINTS,
                 )
             except tools.ToolError as exc:
@@ -330,62 +398,164 @@ class Agent:
 
         Every clause is derived from a field the tools returned, which is why
         this output can never contain an unverified number.
-        """
-        lines: list[str] = []
 
-        for key, snap in evidence.series.items():
+        Written to answer the question asked, not to describe every series that
+        was retrieved. The earlier version emitted latest + window change +
+        forecast for *each* of four series, which produced twelve sentences of
+        undifferentiated figures — technically correct, unreadable, and it
+        buried the one series the user actually asked about.
+        """
+        if not evidence.series:
+            return self._compose_readings(evidence)
+
+        keys = list(evidence.series)
+        primary = keys[0]
+        others = keys[1:]
+        wants_change = bool(_CHANGE_SEEKING.search(question))
+        window = _window_from(question)
+
+        parts: list[str] = []
+        parts.append(self._sentence_primary(question, primary, evidence, wants_change, window))
+
+        # Secondary series get one clause each, and only when their movement
+        # contrasts with the primary — the reason to mention a second series is
+        # comparison, not completeness.
+        if others:
+            parts.append(self._sentence_others(primary, others, evidence, wants_change))
+
+        return " ".join(p for p in parts if p)
+
+    def _sentence_primary(
+        self,
+        question: str,
+        key: str,
+        evidence: answers.Evidence,
+        wants_change: bool,
+        window: str | None,
+    ) -> str:
+        snap = evidence.series[key]
+        label = snap.get("label", key)
+        unit = snap.get("unit") or ""
+        latest = snap.get("latest") or {}
+        yoy = snap.get("year_on_year") or {}
+        since = snap.get("change_since_first_point") or {}
+        higher = snap.get("higher_is_better")
+        as_rate = _is_rate(unit, label)
+
+        if latest.get("value") is None:
+            return ""
+
+        # Lead with the value and when it is from — the question is almost always
+        # "what is it", and the period is what makes the number checkable.
+        # A future-dated period is labelled a projection: saying "unemployment
+        # is 31.9% as of 2031" would read as an observation of something that
+        # has not happened.
+        is_projection = _is_future(latest.get("period"))
+        qualifier = " (IMF projection)" if is_projection else ""
+        text = (
+            f"{label} is {_fmt(latest['value'], unit)} as of {latest.get('period')}"
+            f"{qualifier}"
+        )
+
+        # A window change is the point of a comparison question, so it leads.
+        if wants_change and since.get("from_period") and since.get("absolute") is not None:
+            span = _span_phrase(window or since.get("from_period"))
+            moved = "up" if since["absolute"] > 0 else "down"
+            amount = _fmt(abs(since["absolute"]), "pp" if as_rate else (unit or ""))
+            verdict = _verdict(since["absolute"], higher)
+            text += (
+                f" — {moved} {amount} {span}"
+                f"{f', which is {verdict}' if verdict else ''}"
+                f" (from {_fmt(since['from_value'], unit)} in {since['from_period']})"
+            )
+        elif yoy.get("absolute") is not None:
+            moved = "up" if yoy["absolute"] > 0 else "down"
+            amount = _fmt(abs(yoy["absolute"]), "pp" if as_rate else (unit or ""))
+            verdict = _verdict(yoy["absolute"], higher)
+            text += (
+                f", {moved} {amount} year on year"
+                f"{f' ({verdict})' if verdict else ''}"
+            )
+
+        text += "."
+
+        # One forecast sentence, and only when asked for change or a forecast.
+        forecast = evidence.forecasts.get(key)
+        if forecast and forecast.get("path") and wants_change:
+            point = forecast["path"][-1]
+            text += (
+                f" The {forecast.get('model')} forecast puts it at "
+                f"{_fmt(point.get('forecast'), unit)} by {point.get('period')}."
+            )
+
+        return text
+
+    def _sentence_others(
+        self,
+        primary: str,
+        others: list[str],
+        evidence: answers.Evidence,
+        wants_change: bool,
+    ) -> str:
+        """One contrast sentence about the other series, or nothing.
+
+        Deliberately terse. The secondary series exists to give context to the
+        primary, so it contributes a value and a direction — not its own
+        forecast, window history and units.
+        """
+        clauses: list[str] = []
+        for key in others[:2]:
+            snap = evidence.series[key]
             label = snap.get("label", key)
             unit = snap.get("unit") or ""
             latest = snap.get("latest") or {}
-            yoy = snap.get("year_on_year") or {}
-            since = snap.get("change_since_first_point") or {}
-            higher = snap.get("higher_is_better")
-
             if latest.get("value") is None:
                 continue
 
-            head = f"{label} is {_fmt(latest['value'], unit)} ({latest.get('period')})"
-            if yoy.get("absolute") is not None:
-                head += f", {_verb(yoy['absolute'], higher, _is_rate(unit, label))}"
-            lines.append(head + ".")
+            as_rate = _is_rate(unit, label)
+            move = ""
+            if wants_change:
+                yoy = snap.get("year_on_year") or {}
+                if yoy.get("absolute") is not None:
+                    moved = "up" if yoy["absolute"] > 0 else "down"
+                    amount = _fmt(abs(yoy["absolute"]), "pp" if as_rate else (unit or ""))
+                    move = f", {moved} {amount} y/y"
+            clauses.append(f"{label} is {_fmt(latest['value'], unit)}{move}")
 
-            if since.get("absolute") is not None and since.get("from_period") != latest.get("period"):
-                direction = "up" if since["absolute"] > 0 else "down"
-                # A rate moving from 4.44 to 1.11 is a change of 3.32 percentage
-                # points, not 3.32% — printing it with the series' own unit made
-                # every rate change read as a relative move.
-                amount = abs(since["absolute"])
-                unit_suffix = "pp" if _is_rate(unit, label) else (unit or "")
-                change = _fmt(amount, unit_suffix)
-                lines.append(
-                    f"Over the window, it is {direction} {change} from "
-                    f"{_fmt(since['from_value'], unit)} in {since['from_period']}."
-                )
+        if not clauses:
+            return ""
+        if len(clauses) == 1:
+            return f"For context, {clauses[0]}."
+        return f"For context: {'; '.join(clauses)}."
 
-            forecast = evidence.forecasts.get(key)
-            if forecast and forecast.get("path"):
-                point = forecast["path"][0]
-                horizon = forecast.get("horizon")
-                model = forecast.get("model")
-                lines.append(
-                    f"The current forecast ({model}) puts it at "
-                    f"{_fmt(point.get('forecast'), unit)} by {point.get('period')} "
-                    f"over a {horizon}-period horizon."
-                )
+    def _compose_readings(self, evidence: answers.Evidence) -> str:
+        """Fallback when no series was resolved but headline readings exist."""
+        parts = []
+        for row in evidence.readings:
+            if row.get("latest_value") is None:
+                continue
+            parts.append(
+                f"{row['label']} {_fmt(row['latest_value'], row.get('unit') or '')} "
+                f"({row.get('latest_period')})"
+            )
+        return "Latest readings: " + "; ".join(parts) + "." if parts else ""
 
-        if not lines and evidence.readings:
-            parts = []
-            for row in evidence.readings:
-                if row.get("latest_value") is None:
-                    continue
-                parts.append(
-                    f"{row['label']} {_fmt(row['latest_value'], row.get('unit') or '')} "
-                    f"({row.get('latest_period')})"
-                )
-            if parts:
-                lines.append("Latest readings: " + "; ".join(parts) + ".")
 
-        return " ".join(lines) if lines else ""
+def _span_phrase(from_period: str | None) -> str:
+    """Turn a start period into 'since 2016' / 'over the last 10 years'."""
+    if not from_period:
+        return "over the window"
+    year = str(from_period)[:4]
+    if year.isdigit():
+        return f"since {year}"
+    return "over the window"
+
+
+def _verdict(absolute: float, higher_is_better: bool | None) -> str | None:
+    """A plain-language judgement, only where the metadata supports one."""
+    if higher_is_better is None or abs(absolute) < 1e-9:
+        return None
+    return "an improvement" if (absolute > 0) == higher_is_better else "a deterioration"
 
 
 # --------------------------------------------------------------------------- #
@@ -483,20 +653,49 @@ def _fmt(value: Any, unit: str = "") -> str:
     return f"{text}{unit}" if unit in {"%", " index"} else f"{text} {unit}".strip()
 
 
+def _default_periods(key: str) -> int:
+    """How many observations to fetch when the user named no window.
+
+    Ten years' worth, not a flat sixty points. Sixty observations is five years
+    for a monthly series but sixty years for an annual one, so a single constant
+    gave wildly different horizons depending on the series — and for annual data
+    turned "is it getting better?" into a comparison with 1991.
+    """
+    try:
+        rows = tools.run_select(
+            "SELECT frequency FROM indicators WHERE series_key = ?", [key]
+        )
+        freq = (rows[0].get("frequency") or "M").upper() if rows else "M"
+    except Exception:  # noqa: BLE001 - a lookup failure must not break the answer
+        freq = "M"
+
+    return {"M": 120, "Q": 40, "A": 10}.get(freq, 60)
+
+
+def _is_future(period: str | None) -> bool:
+    """Is this period in the future, meaning the value is a projection?"""
+    if not period:
+        return False
+    from datetime import date
+
+    year = str(period)[:4]
+    return year.isdigit() and int(year) > date.today().year
+
+
+def _is_projection(node: graph_mod.Node) -> bool:
+    """Is this series a published projection rather than an observation?
+
+    The IMF/WEO series end in 2031 and are labelled "IMF: <thing>". Their
+    "latest" value is therefore a forecast, and reporting it as the current
+    reading is worse than useless. Detected from the label rather than a
+    hand-maintained key list, so a new WEO-driven series is handled correctly.
+    """
+    return node.label.lower().startswith(("imf:", "weo")) or node.key.startswith(("weo_", "imf_"))
+
+
 def _is_rate(unit: str, label: str) -> bool:
     text = f"{unit} {label}".lower()
     return any(word in text for word in ("rate", "%", "percent", "inflation", "yoy"))
-
-
-def _verb(absolute: float, higher_is_better: bool | None, is_rate: bool) -> str:
-    """"up 1.1 percentage points, which is worse" — direction plus judgement."""
-    unit = "pp" if is_rate else ""
-    magnitude = f"{abs(absolute):.2f}{(' ' + unit) if unit else ''}".strip()
-    moved = "up" if absolute > 0 else "down"
-    if higher_is_better is None:
-        return f"{moved} {magnitude} year on year"
-    improved = (absolute > 0) == higher_is_better
-    return f"{moved} {magnitude} year on year ({'an improvement' if improved else 'a deterioration'})"
 
 
 def _window_from(text: str) -> str | None:
