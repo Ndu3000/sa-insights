@@ -115,11 +115,11 @@ image = (
 # Helpers
 # --------------------------------------------------------------------------- #
 def _sync_repo() -> None:
-    """Reset the baked checkout to origin/main before rendering.
+    """Reset the baked checkout to origin/main.
 
-    The image clones once at build time. Without this, the commit below would
-    race whatever the host pushed in the meantime and the push would be
-    rejected as non-fast-forward.
+    The image clones once at build time, so the working tree can lag what the
+    host has pushed since. Resetting keeps the code being run — and the commit
+    base — current.
     """
     # A build-time checkout is owned by root; git still needs the directory
     # marked safe even when running as root inside the container.
@@ -134,6 +134,41 @@ def _sync_repo() -> None:
         )
         if proc.returncode != 0:
             raise RuntimeError(f"git {args[0]} failed: {proc.stderr.strip()}")
+
+
+def _publish_with_retry(attempts: int = 3) -> bool:
+    """Publish, re-basing onto origin/main and retrying if the push is rejected.
+
+    A refresh takes roughly 25 minutes, so syncing only at the start of the run
+    leaves a window the width of the whole refresh: any commit that lands on
+    main meanwhile makes the final push non-fast-forward and the run fails
+    after having done all the expensive work. Syncing immediately before
+    rendering narrows that window to the few seconds the render takes, and the
+    retry covers what remains.
+    """
+    from sa_insights import publish
+
+    last: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        _sync_repo()
+        try:
+            return publish.publish()
+        except RuntimeError as exc:
+            last = exc
+            message = str(exc)
+            # Only a rejected push is worth retrying — it is the one failure
+            # caused by outside activity. A render error would fail identically
+            # every time and retrying would just burn 3x the compute.
+            if "git push failed" not in message:
+                raise
+            print(
+                f"publish attempt {attempt}/{attempts} rejected "
+                f"({message.splitlines()[0]}); retrying on a fresh base",
+                flush=True,
+            )
+    if last is not None:
+        raise last
+    return False
 
 
 # --------------------------------------------------------------------------- #
@@ -151,8 +186,10 @@ def _sync_repo() -> None:
 )
 def refresh_and_publish() -> dict:
     """Refresh every series, then publish the regenerated site to Pages."""
-    from sa_insights import publish, refresh, store
+    from sa_insights import refresh, store
 
+    # Sync first so the refresh runs the current code, not whatever was baked
+    # into the image when it was last built.
     _sync_repo()
 
     report = refresh.refresh_all(force=True)
@@ -162,7 +199,7 @@ def refresh_and_publish() -> dict:
     # ingest while looking perfectly successful in the logs.
     data_vol.commit()
 
-    changed = publish.publish()
+    changed = _publish_with_retry()
 
     summary = {
         "series_loaded": report.series_loaded,
