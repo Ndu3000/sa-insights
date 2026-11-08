@@ -1,4 +1,4 @@
-"""Modal deployment: serverless daily refresh, plus an optional live dashboard.
+"""Modal deployment: serverless refresh, dashboard, MLflow and the chatbot.
 
 Why Modal instead of GitHub Actions
 -----------------------------------
@@ -17,6 +17,13 @@ What runs
     the Streamlit app for interactive exploration. Idle containers cost
     nothing; the first visit after idle pays a cold start because the container
     must import torch and load the Chronos weights.
+
+``mlflow_server`` (web endpoint)
+    public MLflow UI, so run links in the dashboard resolve.
+
+``chat_api`` (web endpoint)
+    the grounded question-answering API over the warehouse
+    (``sa_insights.chat.api``).
 
 Deploy
 ------
@@ -375,6 +382,45 @@ def dashboard() -> None:
             "false",
             "--server.enableXsrfProtection",
             "false",
+        ],
+        cwd=REPO_PATH,
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Chatbot API
+# --------------------------------------------------------------------------- #
+@app.function(
+    image=image,
+    # The chat reads the warehouse, so it needs the same Volume the refresh
+    # writes. Without it every question would refuse: no data, nothing to say.
+    volumes={DATA_PATH: data_vol},
+    timeout=60 * 10,
+    # Short window: each container holds a cached graph and session map, and a
+    # question costs well under a second to answer, so there is nothing to keep
+    # warm for long.
+    scaledown_window=180,
+    max_containers=4,
+)
+@modal.web_server(port=8000, startup_timeout=120)
+def chat_api() -> None:
+    """Serve the grounded Q&A API on ``*.modal.run``.
+
+    No MLflow and no language-model secret: the answer path is fully
+    deterministic, so this runs with no external credentials at all. The model,
+    when enabled later, is optional by construction — ``agent.Agent`` produces
+    the same verified answer without one.
+    """
+    _sync_repo()
+
+    subprocess.Popen(
+        [
+            "uvicorn",
+            "sa_insights.chat.api:app",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "8000",
         ],
         cwd=REPO_PATH,
     )
