@@ -502,23 +502,30 @@ class Agent:
         Deliberately terse. The secondary series exists to give context to the
         primary, so it contributes a value and a direction — not its own
         forecast, window history and units.
+
+        Series that restate the primary in another unit are dropped: asking
+        "what is CPI inflation?" was answered with "for context: CPI (all items)
+        is 205.4 index", which is the same subject twice and reads as noise.
         """
         clauses: list[str] = []
+        primary_terms = _subject_terms(primary)
+
         for key in others[:2]:
+            if _subject_terms(key) & primary_terms:
+                continue
             snap = evidence.series[key]
-            label = snap.get("label", key)
+            label = _clean_label(snap.get("label", key))
             unit = snap.get("unit") or ""
             latest = snap.get("latest") or {}
             if latest.get("value") is None:
                 continue
 
-            as_rate = _is_rate(unit, label)
             move = ""
             if wants_change:
                 yoy = snap.get("year_on_year") or {}
                 if yoy.get("absolute") is not None:
                     moved = "up" if yoy["absolute"] > 0 else "down"
-                    amount = _fmt(abs(yoy["absolute"]), "pp" if as_rate else (unit or ""))
+                    amount = _change_amount(abs(yoy["absolute"]), unit)
                     move = f", {moved} {amount} y/y"
             clauses.append(f"{label} is {_fmt(latest['value'], unit)}{move}")
 

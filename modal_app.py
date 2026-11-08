@@ -68,18 +68,24 @@ mlflow_vol = modal.Volume.from_name("sa-insights-mlflow", create_if_missing=True
 
 
 def _optional_secrets() -> list:
-    """Attach the Gemini secret only if it exists.
+    """Attach the Gemini secret only if it actually exists in the workspace.
 
-    Modal resolves named secrets at deploy time and fails the whole deploy if one
-    is missing, so an unconditional reference would break every deploy until the
-    key is created. The model is a nicety here, not a requirement, so its absence
-    must not block shipping.
+    Modal validates named secrets at *deploy* time, not when ``from_name`` runs,
+    so a bare try/except around the lookup is useless — the exception surfaces
+    later and fails the whole deploy. Listing first is the only reliable check.
+    The model is a nicety here, so its absence must never block shipping.
     """
     try:
-        return [modal.Secret.from_name("gemini-api-key")]
-    except Exception:  # noqa: BLE001 - missing secret is an expected state
-        print("deploy: gemini-api-key secret absent; chat uses the deterministic composer")
+        existing = {secret.name for secret in modal.Secret.objects.list()}
+    except Exception as exc:  # noqa: BLE001 - never block a deploy on this
+        print(f"deploy: could not list secrets ({exc}); proceeding without Gemini")
         return []
+
+    if "gemini-api-key" in existing:
+        return [modal.Secret.from_name("gemini-api-key")]
+
+    print("deploy: gemini-api-key absent; chat uses the deterministic composer")
+    return []
 
 
 # --------------------------------------------------------------------------- #

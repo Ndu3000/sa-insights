@@ -35,10 +35,18 @@ ENDPOINT = (
     "{model}:generateContent"
 )
 
-# flash-lite is deliberate: this is a rewriting task over facts the caller already
-# assembled, not reasoning. The cheap model is both fast and accurate enough, and
-# the free tier comfortably covers a demo.
-DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+# Model choice, verified rather than assumed.
+#
+# `gemini-2.5-flash-lite` appears in the /models listing but every
+# generateContent call to it returns 404 "This model ... is not found" — a
+# genuine API inconsistency, not a bad key or a wrong version. Both v1beta and v1
+# reject it. `gemini-flash-lite-latest` works on v1beta (and is the cheaper,
+# faster tier this task wants, since it is rewriting facts rather than reasoning).
+# `gemini-2.5-flash` also works on both versions and is the fallback.
+#
+# Override with GEMINI_MODEL without a rebuild.
+DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
+FALLBACK_MODEL = "gemini-2.5-flash"
 
 _SYSTEM = """You rewrite verified economic facts into clear, natural prose.
 
@@ -169,7 +177,17 @@ def phrase(
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             payload = json.loads(response.read().decode("utf-8"))
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as exc:
+    except urllib.error.HTTPError as exc:
+        # 404 means this model name is not served. Google's /models listing and
+        # the generateContent endpoint disagree for at least one model, so retry
+        # once on the known-good fallback rather than degrading to plain prose
+        # for every future request because of a naming mismatch.
+        if exc.code == 404 and DEFAULT_MODEL != FALLBACK_MODEL:
+            print(f"gemini: {DEFAULT_MODEL} returned 404; retrying {FALLBACK_MODEL}")
+            return _retry_with_fallback(body, key, timeout)
+        print(f"gemini: request failed ({exc}); using deterministic composer")
+        return None
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
         print(f"gemini: request failed ({exc}); using deterministic composer")
         return None
     except json.JSONDecodeError:
@@ -177,6 +195,22 @@ def phrase(
         return None
 
     return _extract_text(payload)
+
+
+def _retry_with_fallback(body: dict, key: str, timeout: float) -> str | None:
+    """One retry against FALLBACK_MODEL. Never recurses further."""
+    request = urllib.request.Request(
+        ENDPOINT.format(model=FALLBACK_MODEL),
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "x-goog-api-key": key},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return _extract_text(json.loads(response.read().decode("utf-8")))
+    except Exception as exc:  # noqa: BLE001 - fallback failure is not fatal
+        print(f"gemini: fallback also failed ({exc}); using deterministic composer")
+        return None
 
 
 def _extract_text(payload: dict) -> str | None:
