@@ -53,15 +53,18 @@ _SYSTEM = """You rewrite verified economic facts into clear, natural prose.
 Rules, in order of importance:
 1. Use ONLY the figures given in FACTS. Never introduce, recompute, round
    differently, or invent a number. No exceptions.
-2. Answer the USER QUESTION directly in the first sentence. Lead with the series
+2. Never write a number with more than two decimal places. Write "4.46%", not
+   "4.464328113591922%". Round to one decimal place for percentages unless the
+   fact already has two.
+3. Answer the USER QUESTION directly in the first sentence. Lead with the series
    the question is about, not with whichever fact appears first.
-3. Be brief: two or three sentences. No preamble, no headings, no bullet lists,
+4. Be brief: two or three sentences. No preamble, no headings, no bullet lists,
    no restating the question.
-4. Where a change is given, say whether it is good or bad news only if the facts
-   state higher_is_better.
-5. If a fact is a projection (a future period), call it a forecast.
-6. If the facts do not answer the question, say so in one sentence.
-7. South African context: "the rand" means ZAR per USD; "the repo rate" is the
+5. Where a change is given, say whether it is good or bad news only if the facts
+   state higher_is_better. Say "worse" or "better", not "bad news".
+6. If a fact is a projection (a future period), call it a forecast.
+7. If the facts do not answer the question, say so in one sentence.
+8. South African context: "the rand" means ZAR per USD; "the repo rate" is the
    policy rate; inflation figures are year-on-year unless stated otherwise.
 
 Write plain text. No markdown, no citations - the interface renders sources
@@ -78,7 +81,21 @@ def _facts_block(question: str, evidence: answers.Evidence) -> str:
     Trimmed hard on purpose. Sending every observation of every series invites
     the model to comment on series nobody asked about, which is exactly the
     behaviour the deterministic composer was just fixed for.
+
+    Numbers are pre-rounded before they reach the model. Left raw, it copied
+    ``4.464328113591922%`` verbatim into prose — the value passed verification
+    because the tool did produce it, so the guarantee held while the answer
+    still looked broken. Rounding here fixes the presentation at the source.
     """
+
+    def num(value: object, digits: int = 2) -> str:
+        if value is None:
+            return "n/a"
+        try:
+            return f"{float(value):.{digits}f}"
+        except (TypeError, ValueError):
+            return str(value)
+
     lines: list[str] = []
 
     for key, snap in evidence.series.items():
@@ -93,26 +110,26 @@ def _facts_block(question: str, evidence: answers.Evidence) -> str:
             continue
 
         parts = [
-            f"- {label} ({key}): latest {latest.get('value')}{unit} "
+            f"- {label} ({key}): latest {num(latest.get('value'))}{unit} "
             f"at {latest.get('period')}"
         ]
         if higher is not None:
             parts.append(f"higher_is_better={higher}")
         if yoy.get("absolute") is not None:
             parts.append(
-                f"change over 12 months: {yoy['absolute']:+.2f} "
-                f"(from {yoy.get('from_value')}{unit} at {yoy.get('from_period')})"
+                f"change over 12 months: {float(yoy['absolute']):+.2f} "
+                f"(from {num(yoy.get('from_value'))}{unit} at {yoy.get('from_period')})"
             )
         if since.get("absolute") is not None:
             parts.append(
-                f"change over window: {since['absolute']:+.2f} "
-                f"(from {since.get('from_value')}{unit} at {since.get('from_period')})"
+                f"change over window: {float(since['absolute']):+.2f} "
+                f"(from {num(since.get('from_value'))}{unit} at {since.get('from_period')})"
             )
         forecast = evidence.forecasts.get(key)
         if forecast and forecast.get("path"):
             point = forecast["path"][-1]
             parts.append(
-                f"forecast: {point.get('forecast')}{unit} by {point.get('period')} "
+                f"forecast: {num(point.get('forecast'))}{unit} by {point.get('period')} "
                 f"model {forecast.get('model')}"
             )
         lines.append("; ".join(parts))
@@ -122,7 +139,7 @@ def _facts_block(question: str, evidence: answers.Evidence) -> str:
             if row.get("latest_value") is None:
                 continue
             lines.append(
-                f"- {row['label']} ({row['key']}): {row['latest_value']}"
+                f"- {row['label']} ({row['key']}): {num(row['latest_value'])}"
                 f"{row.get('unit') or ''} at {row.get('latest_period')}"
             )
 

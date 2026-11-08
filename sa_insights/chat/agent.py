@@ -679,6 +679,53 @@ def _default_periods(key: str) -> int:
     return {"M": 120, "Q": 40, "A": 10}.get(freq, 60)
 
 
+def _subject_terms(key: str) -> set[str]:
+    """Words identifying a series' *subject*, for de-duplication.
+
+    Used to drop a secondary series that restates the primary in another unit —
+    "CPI inflation" and "CPI (all items)" are the same subject, so offering the
+    index level as "context" says the same thing twice in different units.
+    """
+    words = set(graph_mod._tokens(key.replace("_", " ")))
+    # Drop the measure qualifier so inflation_yoy and inflation_index collide.
+    generic = {"yoy", "index", "annual", "avg", "average", "rate", "real", "nominal", "usd"}
+    return words - generic
+
+
+def _clean_label(label: str) -> str:
+    """Strip source prefixes and parenthetical units from a display label.
+
+    "IMF: unemployment" reads as an authority claim inside a sentence, and
+    "Leading indicator is 119.6 index (2019=100), up 2.24 index (2019=100) y/y"
+    says the unit twice. The source is recorded in the citation, where it
+    belongs.
+    """
+    text = label
+    for prefix in ("IMF: ", "WEO: "):
+        if text.startswith(prefix):
+            text = text[len(prefix):]
+    # Remove a trailing "(...)" qualifier, and any "(...)" inside the value part.
+    text = re.sub(r"\s*\([^)]*\)\s*$", "", text).strip()
+    return text or label
+
+
+def _change_amount(absolute: float, unit: str) -> str:
+    """Format a change magnitude with the right unit suffix.
+
+    A rate moving 1.1 points is "1.1 pp", not "1.1 %" — the second reads as a
+    relative move and is the mistake that made CPI look like it tripled.
+    """
+    is_rate = any(w in (unit or "").lower() for w in ("%", "percent"))
+    if is_rate:
+        return f"{absolute:.2f} pp"
+    # Index units like "index (2019=100)" are noisy mid-sentence; the number and
+    # direction carry the meaning.
+    if "index" in (unit or "").lower():
+        return f"{absolute:.2f}"
+    suffix = f" {unit}" if unit and unit not in {"%"} else ""
+    return f"{absolute:.2f}{suffix}"
+
+
 def _is_future(period: str | None) -> bool:
     """Is this period in the future, meaning the value is a projection?"""
     if not period:
