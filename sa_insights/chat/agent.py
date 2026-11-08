@@ -68,6 +68,13 @@ _CHANGE_SEEKING = re.compile(
     re.IGNORECASE,
 )
 
+# Follow-up phrasing that asks for a comparison, not just a new subject. When one
+# of these appears, the previous turn's series is kept as a comparison target.
+_COMPARATIVE = re.compile(
+    r"\b(both|compare|versus|vs\.?|against|either|and the other|difference between)\b",
+    re.IGNORECASE,
+)
+
 # How many series to fetch. Lowered from 4: four series x three sentences each
 # is twelve sentences, which is a report rather than an answer. Two is enough
 # to compare, and the primary series always gets the detail.
@@ -179,6 +186,17 @@ class Agent:
             # Only when the question names nothing do we fall back to context.
             if seeds:
                 seeds = [k for k in seeds if not k.startswith(("theme:", "category:"))] or seeds
+                # "compare both to today" explicitly asks for a comparison, which
+                # means the previous subject is still in play. Keep it as a
+                # secondary so the answer can actually compare rather than just
+                # describe the new series.
+                if _COMPARATIVE.search(text):
+                    carried = [
+                        k
+                        for k in session.last_series
+                        if k not in seeds and not k.startswith(("theme:", "category:"))
+                    ]
+                    seeds = seeds + carried[:1]
             else:
                 seeds = list(session.last_series)
 
@@ -239,7 +257,15 @@ class Agent:
         scored = g.score(text)
         if not scored:
             return []
-        ordered = sorted(scored.items(), key=lambda kv: -kv[1])
+
+        # Projection series are demoted at retrieval, not just at composition.
+        # "What was unemployment like 10 years ago?" seeded `weo_unemployment`
+        # (an IMF series whose latest point is a 2031 forecast) above the real
+        # monthly series, so the answer led with a projection.
+        ordered = sorted(
+            scored.items(),
+            key=lambda kv: (_is_projection(g.nodes[kv[0]]), -kv[1]),
+        )
         top_score = ordered[0][1]
 
         # Keep seeds that are clearly dominant, not every weak match — a noisy
@@ -290,15 +316,17 @@ class Agent:
 
         ordered = sorted(candidates, key=directness)
 
-        # Drop secondary series that share nothing with the question. "What is
-        # CPI now?" was pulling in the CPI *index* level as "for context", which
-        # says the same thing twice in different units and reads as noise.
-        relevant = [k for k in ordered if -directness(k)[1] > 0]
-        if relevant:
-            # Keep at most one zero-overlap series, and only if nothing else was
-            # named — otherwise the answer drifts off the question asked.
-            tail = [k for k in ordered if -directness(k)[1] == 0][:1]
-            ordered = relevant + (tail if len(relevant) < 2 else [])
+        # Seeds survive the relevance filter. They are either series the user
+        # named or context the agent deliberately carried in ("compare both"),
+        # so dropping them for low vocabulary overlap discards exactly the
+        # comparison target the question asked for — which is how "compare both
+        # to today" ended up answering about one series only.
+        kept = [k for k in ordered if -directness(k)[1] > 0]
+        carried = [k for k in ordered if k in named and k not in kept]
+        ordered = kept + carried
+
+        if not ordered:
+            ordered = candidates
 
         return ordered[:_MAX_RETRIEVED]
 

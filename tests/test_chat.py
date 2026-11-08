@@ -210,3 +210,49 @@ def test_answers_never_carry_unverified_numbers(agent: Agent) -> None:
     for question in ("What is CPI inflation now?", "what about the rand", "How has the repo rate changed since 2020?"):
         answer = agent.ask(question, Session())
         assert answer.unverified_numbers == [], f"{question!r} -> {answer.unverified_numbers}"
+
+
+# --------------------------------------------------------------------------- #
+# Retrieval regressions
+# --------------------------------------------------------------------------- #
+def test_a_named_series_survives_a_time_window(agent: Agent) -> None:
+    """A reported bug, as a test.
+
+    "what was unemployment like 10 years ago?" answered with the **long bond
+    yield**, because bond_yield's description reads "Daily average yield on
+    government bonds of 10 years and longer" — so the tokens "10" and "years"
+    matched a series nobody asked about, and scored 54 to unemployment's 13.
+
+    Time expressions and bare digits are now excluded from retrieval.
+    """
+    answer = agent.ask("what was unemployment like 10 years ago?", Session())
+    assert answer.kind == "answer"
+    assert any("unemployment" in key for key in answer.evidence_series), answer.evidence_series
+    assert "bond yield" not in answer.text.lower()
+
+
+def test_projection_does_not_outrank_observed_data(agent: Agent) -> None:
+    """IMF series end in 2031, so leading with one states a forecast as fact."""
+    answer = agent.ask("what is unemployment?", Session())
+    assert answer.evidence_series, "no evidence"
+    assert answer.evidence_series[0] == "unemployment", answer.evidence_series
+
+
+def test_comparative_follow_up_keeps_both_subjects(agent: Agent) -> None:
+    """"compare both" must compare, not silently answer about one series."""
+    session = Session()
+    agent.ask("What is CPI inflation now?", session)
+    answer = agent.ask("and unemployment? compare both to today", session)
+    joined = " ".join(answer.evidence_series)
+    assert "unemployment" in joined, answer.evidence_series
+    assert "cpi" in joined, f"previous subject dropped: {answer.evidence_series}"
+
+
+def test_time_words_are_not_topics() -> None:
+    """Guard the tokeniser directly, so the class of bug cannot return."""
+    from sa_insights.chat.graph import _tokens
+
+    tokens = _tokens("what was unemployment like 10 years ago")
+    assert "unemployment" in tokens
+    for noise in ("10", "years", "ago", "what", "was", "like"):
+        assert noise not in tokens, f"{noise!r} should not be a retrieval token"

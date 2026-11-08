@@ -49,7 +49,25 @@ WEIGHT = {
 
 _STOPWORDS = frozenset(
     """a an and are as at be by for from has have how in into is it its of on or
-    that the their to was were what when where which who why will with""".split()
+    that the their to was were what when where which who why will with
+    like about me my i we our you your please tell show give mean meant
+    still just also very really much many more most some any""".split()
+)
+
+# Time expressions are not topic words.
+#
+# "What was unemployment like 10 years ago?" matched `bond_yield` far above
+# `unemployment`, because bond_yield's description contains "of 10 years and
+# longer" — so "years" is a high-IDF term shared by the question and one
+# unrelated series. The same class of bug makes "compare both to today" score on
+# any series whose description mentions a date.
+#
+# The window is parsed separately by the agent, so these words carry no
+# retrieval meaning and must not compete with the actual subject.
+_TIME_WORDS = frozenset(
+    """year years month months quarter quarters week weeks day days decade
+    decades ago now today current currently recent recently past since from
+    compare compared comparing both versus vs""".split()
 )
 
 # Themes: the bridge between how people ask and how the data is labelled.
@@ -159,7 +177,12 @@ def _tokens(text: str) -> list[str]:
     words = re.findall(r"[a-z0-9]+", text.lower())
     out = []
     for word in words:
-        if word in _STOPWORDS or len(word) < 2:
+        if word in _STOPWORDS or word in _TIME_WORDS or len(word) < 2:
+            continue
+        # Bare digits carry no topical meaning and match descriptions by accident
+        # ("10 years and longer" in bond_yield's blurb). A year in a question is a
+        # window, which the agent parses separately.
+        if word.isdigit():
             continue
         out.append(word)
         if word.endswith("s") and len(word) > 3:
