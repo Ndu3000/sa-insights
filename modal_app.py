@@ -244,6 +244,7 @@ def _apply_mlflow_env() -> None:
     scaledown_window=120,
     max_containers=1,
 )
+@modal.concurrent(max_inputs=20)
 @modal.web_server(port=5000, startup_timeout=120)
 def mlflow_server() -> None:
     """Serve the MLflow UI publicly so run links in the dashboard resolve.
@@ -377,9 +378,19 @@ def refresh_and_publish() -> dict:
     scaledown_window=300,
     max_containers=2,
 )
+@modal.concurrent(max_inputs=20)
 @modal.web_server(port=8501, startup_timeout=300)
 def dashboard() -> None:
-    """Serve the Streamlit app publicly on ``*.modal.run``."""
+    """Serve the Streamlit app publicly on ``*.modal.run``.
+
+    ``@modal.concurrent`` is required, not an optimisation. Streamlit is
+    WebSocket-driven and holds one long-lived connection per browser tab. The
+    default is a single input per container, so the first open tab monopolised
+    the container and every subsequent HTTP request — including
+    ``/_stcore/health`` — queued behind it and timed out at the proxy. That
+    surfaced as a 303 at exactly 150s, which looked like a startup failure but
+    was really a busy container refusing to accept a second connection.
+    """
     # Modal caches build layers, so the baked checkout can lag origin/main.
     # Refreshing here keeps the live app on the same code as the published site.
     _sync_repo()
@@ -425,6 +436,7 @@ def dashboard() -> None:
     scaledown_window=180,
     max_containers=4,
 )
+@modal.concurrent(max_inputs=50)
 @modal.web_server(port=8000, startup_timeout=120)
 def chat_api() -> None:
     """Serve the grounded Q&A API on ``*.modal.run``.
