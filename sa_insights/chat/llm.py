@@ -67,6 +67,20 @@ Rules, in order of importance:
 8. South African context: "the rand" means ZAR per USD; "the repo rate" is the
    policy rate; inflation figures are year-on-year unless stated otherwise.
 
+ANSWERING HISTORICAL QUESTIONS
+"change over window" IS the historical comparison. When asked "what was X like
+10 years ago" or "how has X changed since 2015", answer from that field: the
+"from" value is the historical reading and the "latest" value is today. The
+"from" period is the earliest data available, which may be a year or two later
+than the year asked about - that is expected and is not a reason to refuse. Only
+refuse if the series is absent from FACTS entirely.
+
+ANSWERING FOLLOW-UP QUESTIONS
+The user may refer to earlier turns with pronouns such as "they", "them", "that",
+"those numbers", "the figures". FACTS always describes the series actually being
+discussed, so answer about those series directly. Never say you do not know what
+"they" refers to - the facts define it.
+
 Write plain text. No markdown, no citations - the interface renders sources
 separately."""
 
@@ -128,8 +142,10 @@ def _facts_block(question: str, evidence: answers.Evidence) -> str:
             )
         if since.get("absolute") is not None:
             parts.append(
-                f"change over window: {float(since['absolute']):+.2f}{delta_unit} "
-                f"(from {num(since.get('from_value'))}{unit} at {since.get('from_period')})"
+                f"change over window ({since.get('from_period')} to "
+                f"{latest.get('period')}): {float(since['absolute']):+.2f}{delta_unit} "
+                f"(historical reading {num(since.get('from_value'))}{unit}, "
+                f"today {num(latest.get('value'))}{unit})"
             )
         forecast = evidence.forecasts.get(key)
         if forecast and forecast.get("path"):
