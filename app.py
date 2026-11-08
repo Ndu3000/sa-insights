@@ -1294,6 +1294,156 @@ def view_downloads(summary: dict):
 
 
 # ---------------------------------------------------------------------------
+# Chat
+# ---------------------------------------------------------------------------
+def _chat_agent():
+    """One Agent per Streamlit session.
+
+    Cached on the session rather than module level: the graph is built once per
+    user, so the first question pays for it and the rest are instant, without a
+    shared object leaking conversation state between browsers.
+    """
+    if "chat_agent" not in st.session_state:
+        from sa_insights.chat.agent import Agent
+
+        st.session_state.chat_agent = Agent()
+    return st.session_state.chat_agent
+
+
+def _chat_session():
+    from sa_insights.chat.agent import Session
+
+    if "chat_session" not in st.session_state:
+        st.session_state.chat_session = Session()
+    return st.session_state.chat_session
+
+
+def _render_citations(citations: list) -> None:
+    """Render the evidence behind an answer.
+
+    Citations are the reason to trust any of this, so they are shown inline by
+    default rather than hidden behind an expander — a reader who has to click to
+    check has not really been given a source.
+    """
+    if not citations:
+        return
+    order = {"observation": 0, "derived": 1, "forecast": 2}
+    shown = sorted(citations, key=lambda c: order.get(c.source, 3))[:8]
+    parts = []
+    for cite in shown:
+        value = "—" if cite.value is None else f"{cite.value:,.2f}".rstrip("0").rstrip(".")
+        label = cite.label or cite.series_key
+        cls = cite.source if cite.source in {"forecast", "derived"} else ""
+        hint = f" · {cite.detail}" if cite.detail else ""
+        parts.append(
+            f'<span class="cite {cls}"><b>{value}</b> · {label} · {cite.period}{hint}</span>'
+        )
+    st.markdown(f'<div class="chat-meta">{"".join(parts)}</div>', unsafe_allow_html=True)
+
+
+def _render_exchange(question: str, answer) -> None:
+    kind_class = {"clarify": " clarify", "refuse": " refuse"}.get(answer.kind, "")
+    st.markdown(
+        f'<div class="chat-q"><b>You</b> · {question}</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div class="chat-a{kind_class}">{answer.text}</div>',
+        unsafe_allow_html=True,
+    )
+
+    if answer.kind == "answer" and answer.citations:
+        _render_citations(answer.citations)
+
+    if answer.follow_up:
+        st.markdown(
+            f'<div class="chat-meta">↳ {answer.follow_up}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # Surface the verification result rather than leaving it invisible. If a
+    # draft was rejected for containing an unverifiable figure, the user should
+    # know that is what happened — hiding it looks like the bot simply failed.
+    if answer.unverified_numbers:
+        st.markdown(
+            ui.insight(
+                "Draft rejected",
+                "Some figures in the generated answer did not match any value in "
+                "the warehouse, so the narrative was discarded. The verified "
+                "numbers are in the citations above.",
+                warn=True,
+            ),
+            unsafe_allow_html=True,
+        )
+
+
+def view_chat(summary: dict):
+    st.markdown(
+        ui.section(
+            "Ask the data",
+            "grounded answers with citations — or an honest refusal",
+        ),
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        ui.insight(
+            "Numbers come from the warehouse, not the model",
+            f"Every figure is fetched from <b>{summary['observations']:,}</b> stored "
+            f"observations, and each answer is checked before display: if a number "
+            f"cannot be traced to a stored value, the answer is rejected rather than "
+            f"shown. Ask about any of the <b>{summary['series']}</b> series — "
+            f"inflation, the repo rate, GDP growth, unemployment, the rand.",
+        ),
+        unsafe_allow_html=True,
+    )
+
+    session = _chat_session()
+    agent = _chat_agent()
+
+    # Suggestions are real, working questions rather than decorative prompt
+    # chips — each one is exercised in the test suite.
+    if not session.turns:
+        st.markdown(
+            '<div class="chat-empty"><b>Try one of these</b><br>'
+            "What is CPI inflation now? · How has the repo rate changed since 2020? "
+            "· Is inflation getting better? · What about the rand?</div>",
+            unsafe_allow_html=True,
+        )
+
+    for turn in session.turns:
+        _render_exchange(turn.question, turn.answer)
+
+    question = st.chat_input("Ask about the South African economy…")
+    if question:
+        with st.spinner("Checking the data…"):
+            try:
+                # The return value is redundant here: agent.ask appends the turn
+                # to the session itself, and the rerun below renders it from
+                # there. Storing it would be a variable nobody reads.
+                agent.ask(question, session)
+            except Exception as exc:  # noqa: BLE001 - a bad question must not break the page
+                st.error(f"Could not answer that: {exc}")
+                return
+        # Rerun so the new exchange renders above the input box, keeping the
+        # conversation in reading order with the newest at the bottom.
+        st.rerun()
+
+    if session.turns:
+        left, right = st.columns([1, 5])
+        with left:
+            if st.button("Clear", use_container_width=True):
+                st.session_state.pop("chat_session", None)
+                st.rerun()
+        with right:
+            st.caption(
+                f"{len(session.turns)} turn(s) in this conversation · "
+                "follow-ups carry context, so “and unemployment?” resolves to "
+                "the previous subject."
+            )
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main():
@@ -1335,7 +1485,15 @@ def main():
     sidebar(summary, meta, set(data.keys()))
 
     tabs = st.tabs(
-        ["Overview", "Explore", "Forecast lab", "Compare", "My dashboard", "Downloads"]
+        [
+            "Overview",
+            "Explore",
+            "Forecast lab",
+            "Compare",
+            "Ask",
+            "My dashboard",
+            "Downloads",
+        ]
     )
     with tabs[0]:
         view_overview(data, specs_by_key)
@@ -1346,8 +1504,10 @@ def main():
     with tabs[3]:
         view_compare(data, specs_by_key)
     with tabs[4]:
-        view_custom(data, specs_by_key)
+        view_chat(summary)
     with tabs[5]:
+        view_custom(data, specs_by_key)
+    with tabs[6]:
         view_downloads(summary)
 
     sources = sorted({provider_of(s) for s in SERIES})

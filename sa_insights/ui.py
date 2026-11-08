@@ -704,6 +704,42 @@ hr { border-color:var(--border); }
   font-size:.78rem; font-weight:600;
 }
 .stDownloadButton>button:hover { background:rgba(79,179,255,.18); color:#4FB3FF; }
+
+/* ---------- Chat ---------- */
+.chat-q {
+  background:rgba(79,179,255,.10); border:1px solid rgba(79,179,255,.24);
+  border-radius:11px; padding:.62rem .9rem; margin:.2rem 0 .6rem;
+  font-size:.86rem; color:var(--text); line-height:1.5;
+}
+.chat-q b { color:#4FB3FF; font-weight:650; }
+.chat-a {
+  background:var(--surface); border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:11px; padding:.7rem .95rem; margin:0 0 .5rem;
+  font-size:.87rem; color:var(--text); line-height:1.6;
+}
+.chat-a.clarify { border-left-color:var(--amber); }
+.chat-a.refuse  { border-left-color:var(--faint); color:var(--muted); }
+.chat-a b { color:#3DDC97; font-weight:650; }
+.chat-meta {
+  font-size:.68rem; color:var(--faint); margin:.15rem 0 .85rem;
+  display:flex; flex-wrap:wrap; gap:.4rem; align-items:center;
+}
+.cite {
+  font-size:.685rem; color:var(--muted);
+  background:rgba(148,163,184,.08); border:1px solid var(--border);
+  border-radius:7px; padding:.16rem .5rem; white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.cite b { color:var(--text); font-weight:650; }
+.cite.forecast { color:#4FB3FF; border-color:rgba(79,179,255,.28); background:rgba(79,179,255,.08); }
+.cite.derived  { color:#F5B94B; border-color:rgba(245,185,75,.28); background:rgba(245,185,75,.08); }
+.chat-empty {
+  border:1px dashed var(--border); border-radius:12px;
+  padding:1.4rem 1.1rem; text-align:center; color:var(--faint);
+  font-size:.82rem; line-height:1.6;
+}
+.chat-empty b { color:var(--muted); font-weight:600; }
 </style>
 """
 
