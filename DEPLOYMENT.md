@@ -180,6 +180,12 @@ Two things went wrong building it, both worth knowing:
   ignored and the error message named a function that plainly existed. The
   deployed file is now copied over the clone at both import paths, and
   re-asserted after every `git reset` in `_sync_repo()`.
+- **Tracking was silently disabled by import order.** `tracking.py` reads
+  `MLFLOW_TRACKING_URI` into a module constant *at import time* and gates every
+  call on it. Setting the variable after `from sa_insights import refresh` has no
+  effect whatsoever: the first run logged `tracking at <url>` while MLflow stayed
+  completely empty. `_apply_mlflow_env()` now runs before any `sa_insights`
+  import in that process.
 
 ### Why the publish push is retried
 

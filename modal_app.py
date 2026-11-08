@@ -298,16 +298,18 @@ def _publish_with_retry(attempts: int = 3) -> bool:
 )
 def refresh_and_publish() -> dict:
     """Refresh every series, then publish the regenerated site to Pages."""
-    from sa_insights import refresh, store
-
     # Sync first so the refresh runs the current code, not whatever was baked
     # into the image when it was last built.
     _sync_repo()
 
-    # Set before refresh import time in practice, but tracking reads its URI at
-    # module import, so the values must be in os.environ before that import is
-    # first triggered by refresh.refresh_all().
+    # This must happen before `sa_insights` is imported anywhere in this process.
+    # tracking.py reads MLFLOW_TRACKING_URI into a module constant at import time
+    # and gates every call on it, so a URI set afterwards has no effect at all -
+    # the first run of this function logged "tracking at <url>" while MLflow
+    # stayed empty, because the import below had already disabled it.
     _apply_mlflow_env()
+
+    from sa_insights import refresh, store
 
     report = refresh.refresh_all(force=True)
 
