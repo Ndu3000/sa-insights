@@ -34,6 +34,7 @@ Modal secret at runtime and never written into an image layer.
 
 from __future__ import annotations
 
+import os
 import shlex
 import subprocess
 
@@ -42,6 +43,7 @@ import modal
 REPO_URL = "https://github.com/Ndu3000/sa-insights.git"
 REPO_PATH = "/repo"
 DATA_PATH = "/data"
+MLFLOW_PATH = "/mlflow"
 VENV = "/opt/venv"
 
 CRON_UTC = "15 5 * * *"  # 07:15 SAST, after the overnight SARB / Stats SA updates
@@ -51,6 +53,11 @@ app = modal.App("sa-insights")
 # The DuckDB warehouse, cache and refresh state live here. Unlike Hugging Face
 # Spaces (whose disk resets on every restart) a Modal Volume survives redeploys.
 data_vol = modal.Volume.from_name("sa-insights-data", create_if_missing=True)
+
+# MLflow's SQLite backend and artefacts. Separate from the warehouse: the two
+# have different write patterns and different retention needs, and MLflow is the
+# one thing here that can be discarded without losing data.
+mlflow_vol = modal.Volume.from_name("sa-insights-mlflow", create_if_missing=True)
 
 
 # --------------------------------------------------------------------------- #
@@ -64,6 +71,16 @@ image = (
     .apt_install("git", "curl", "ca-certificates")
     .run_commands(f"git clone --branch main {REPO_URL} {REPO_PATH}")
     .workdir(REPO_PATH)
+    # Ship this file into the image at both paths it can be imported from.
+    #
+    # Modal resolves a deployed function by importing the module by name. The
+    # image's WORKDIR is /repo, which contains the *cloned* copy of this same
+    # file — so edits made locally and not yet pushed were silently shadowed by
+    # the older clone, surfacing as "module 'modal_app' has no attribute ..."
+    # in a crash loop. Copying the deployed file over the clone makes the file
+    # that was deployed authoritative, and /root covers the other sys.path entry.
+    .add_local_file(__file__, f"{REPO_PATH}/modal_app.py", copy=True)
+    .add_local_file(__file__, "/root/modal_app.py", copy=True)
     # uv.lock pins every transitive version, so builds are reproducible. The
     # `fm` extra installs CPU torch + chronos-forecasting via [tool.uv.sources].
     #
@@ -88,10 +105,11 @@ image = (
             "DATA_DIR": DATA_PATH,
             "SA_PUBLISH_REPO": REPO_PATH,
             "SA_INSIGHTS_FM": "1",
-            # MLflow is deliberately left unconfigured. Without a tracking URI
-            # the tracer degrades to a no-op; setting one would make the
-            # dashboard advertise a UI URL that no public host can serve, which
-            # is exactly the dead-link bug we already fixed once.
+            # Both MLflow URLs are filled in at runtime by _mlflow_env(), because
+            # they depend on the URL Modal assigns to the mlflow function. A
+            # value baked in here would be wrong on the next deploy (Modal
+            # version-suffixes some URLs) and would recreate the dead-link bug
+            # that separating TRACKING_URI from UI_URL was meant to fix.
         }
     )
     # Build-time assertion. A missing torch/chronos previously showed up only as
@@ -120,6 +138,10 @@ def _sync_repo() -> None:
     The image clones once at build time, so the working tree can lag what the
     host has pushed since. Resetting keeps the code being run — and the commit
     base — current.
+
+    ``modal_app.py`` itself is exempt: the image ships the deployed copy over the
+    clone (see the image definition), so including it here would let a reset
+    quietly restore an older version of this file mid-run.
     """
     # A build-time checkout is owned by root; git still needs the directory
     # marked safe even when running as root inside the container.
@@ -134,6 +156,96 @@ def _sync_repo() -> None:
         )
         if proc.returncode != 0:
             raise RuntimeError(f"git {args[0]} failed: {proc.stderr.strip()}")
+
+    # Re-assert the deployed copy after the reset overwrites the working tree.
+    try:
+        import shutil
+
+        shutil.copyfile(os.path.abspath(__file__), f"{REPO_PATH}/modal_app.py")
+    except OSError as exc:
+        print(f"warning: could not restore modal_app.py after reset ({exc})")
+
+
+def _mlflow_env() -> dict[str, str]:
+    """Resolve MLflow's public URL and configure tracking for this process.
+
+    Looking the URL up at call time (rather than baking it into the image) means
+    a redeploy that changes the URL cannot leave the dashboard advertising a
+    stale address. If the lookup fails, tracking is left unconfigured: the
+    tracer degrades to a no-op, which is strictly better than a link that 404s.
+    """
+    url = None
+    try:
+        url = modal.Function.from_name(app.name, "mlflow_server").get_web_url()
+    except Exception as exc:  # noqa: BLE001 - tracking must never break a refresh
+        print(f"mlflow: could not resolve public URL ({exc}); tracking disabled")
+
+    if not url:
+        return {}
+
+    # The same public URL serves both roles here, which is the unusual case: in
+    # Docker the SDK target is the compose service name and only the UI URL is
+    # browser-reachable, so tracking.py keeps them as separate variables.
+    return {
+        "MLFLOW_TRACKING_URI": url,
+        "MLFLOW_UI_URL": url,
+        "MLFLOW_EXPERIMENT": "sa-insights-forecasting",
+    }
+
+
+def _apply_mlflow_env() -> None:
+    """Export the resolved MLflow URLs into this process's environment."""
+    env = _mlflow_env()
+    if env:
+        os.environ.update(env)
+        print(f"mlflow: tracking at {env['MLFLOW_TRACKING_URI']}", flush=True)
+
+
+# --------------------------------------------------------------------------- #
+# MLflow tracking server
+# --------------------------------------------------------------------------- #
+@app.function(
+    image=image,
+    volumes={MLFLOW_PATH: mlflow_vol},
+    timeout=60 * 30,
+    # Tracking is only written to when a refresh runs, which is once a day. There
+    # is nothing to keep warm for, so this scales fully to zero and costs
+    # nothing while idle.
+    scaledown_window=120,
+    max_containers=1,
+)
+@modal.web_server(port=5000, startup_timeout=120)
+def mlflow_server() -> None:
+    """Serve the MLflow UI publicly so run links in the dashboard resolve.
+
+    Named ``mlflow_server``, not ``mlflow``: a module-level function with that
+    name shadows the ``mlflow`` package for every other function in this file,
+    and Modal's runner resolves remote functions by name, so the collision
+    surfaced as "module 'modal_app' has no attribute 'mlflow'" in a crash loop.
+    """
+    subprocess.Popen(
+        [
+            "mlflow",
+            "server",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "5000",
+            # SQLite, not the filesystem backend: MLflow 3 deprecated the
+            # latter, and a single file on the Volume survives redeploys.
+            "--backend-store-uri",
+            f"sqlite:///{MLFLOW_PATH}/mlflow.db",
+            "--default-artifact-root",
+            f"{MLFLOW_PATH}/artifacts",
+            # Modal terminates TLS and proxies from a different origin; without
+            # these the UI loads but every API call fails its host check.
+            "--allowed-hosts",
+            "*",
+            "--cors-allowed-origins",
+            "*",
+        ],
+        cwd=REPO_PATH,
+    )
 
 
 def _publish_with_retry(attempts: int = 3) -> bool:
@@ -192,6 +304,11 @@ def refresh_and_publish() -> dict:
     # into the image when it was last built.
     _sync_repo()
 
+    # Set before refresh import time in practice, but tracking reads its URI at
+    # module import, so the values must be in os.environ before that import is
+    # first triggered by refresh.refresh_all().
+    _apply_mlflow_env()
+
     report = refresh.refresh_all(force=True)
 
     # Persist the warehouse onto the Volume. Modal only keeps a container's
@@ -234,6 +351,10 @@ def dashboard() -> None:
     # Modal caches build layers, so the baked checkout can lag origin/main.
     # Refreshing here keeps the live app on the same code as the published site.
     _sync_repo()
+
+    # Streamlit inherits this process's environment, so the sidebar advertises a
+    # reachable MLflow link rather than an empty one.
+    _apply_mlflow_env()
 
     subprocess.Popen(
         [
