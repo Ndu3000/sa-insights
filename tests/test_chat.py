@@ -256,3 +256,45 @@ def test_time_words_are_not_topics() -> None:
     assert "unemployment" in tokens
     for noise in ("10", "years", "ago", "what", "was", "like"):
         assert noise not in tokens, f"{noise!r} should not be a retrieval token"
+
+
+def test_pronoun_follow_up_borrows_the_previous_subject(agent: Agent) -> None:
+    """A reported bug, as a test.
+
+    "what do they confirm?" contains no vocabulary at all — every token is a
+    pronoun or a verb — so grounding failed and the bot refused, despite the
+    answer being on screen from the turn before. Resolving the reference from
+    conversation state is what makes this conversational rather than keyword
+    search.
+    """
+    session = Session()
+    agent.ask("what were unemployment and inflation like 10 years ago?", session)
+    answer = agent.ask("what do they confirm?", session)
+    assert answer.kind == "answer", answer.text
+    assert any("unemploy" in k for k in answer.evidence_series), answer.evidence_series
+
+
+def test_named_subject_is_never_overridden_by_a_pronoun(agent: Agent) -> None:
+    """The inverse of the bug above, and the reason the rule needs a guard.
+
+    "and unemployment? compare both to today" names unemployment, so it must
+    answer about unemployment. Treating the word "both" as a reference signal let
+    the pronoun branch win and answered about the previous series instead.
+    """
+    session = Session()
+    agent.ask("what is cpi now", session)
+    answer = agent.ask("and unemployment? compare both to today", session)
+    assert any("unemployment" in k for k in answer.evidence_series), answer.evidence_series
+    assert answer.evidence_series[0].startswith(("unemployment", "weo_unemployment"))
+
+
+def test_window_is_labelled_honestly_when_data_is_shorter(agent: Agent) -> None:
+    """Never claim a comparison the data does not support.
+
+    Unemployment starts in 2017, but asking about "10 years ago" produced "up
+    5.36 pp since 2016" — a year the series does not cover. Arithmetically
+    correct, unverifiable in practice.
+    """
+    answer = agent.ask("what was unemployment like 10 years ago?", Session())
+    if "since 2017" in answer.text:
+        assert "not 2016" in answer.text, answer.text

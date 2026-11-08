@@ -68,6 +68,27 @@ _CHANGE_SEEKING = re.compile(
     re.IGNORECASE,
 )
 
+# Pronouns and deictic references that carry no subject of their own.
+#
+# "What do they confirm?" names nothing — every token is a pronoun or a verb — so
+# vocabulary grounding failed and the bot refused a question whose answer was
+# sitting in the previous turn. A retrieval system that cannot resolve "they" is
+# not conversation-aware, only keyword-aware.
+_PRONOUN_REFERENCE = re.compile(
+    r"\b(it|its|they|them|their|these|those|this|that|both|the same|"
+    r"the first|the second|the latter|the former|ones|figures|numbers|data)\b",
+    re.IGNORECASE,
+)
+
+# Words that ask for confirmation or a summary rather than new data. Paired with a
+# pronoun, they are almost always a request to keep talking about the previous
+# subject.
+_CONFIRM_SEEKING = re.compile(
+    r"\b(confirm\w*|mean\w*|suggest\w*|imply|indicate\w*|tell\w*|show\w*|"
+    r"explain|summar\w*|conclusion|so what|which means|takeaway)\b",
+    re.IGNORECASE,
+)
+
 # Follow-up phrasing that asks for a comparison, not just a new subject. When one
 # of these appears, the previous turn's series is kept as a comparison target.
 _COMPARATIVE = re.compile(
@@ -178,8 +199,20 @@ class Agent:
         # Follow-ups inherit the previous turn's series before scoring, so
         # "and unemployment?" is read as a new series in the same conversation
         # rather than as a question about the word "unemployment" in isolation.
-        is_follow_up = bool(_FOLLOW_UP.match(text)) and bool(session.last_series)
         seeds = self._seeds(text, g)
+
+        # A question made only of pronouns and verbs names nothing, but is a
+        # perfectly good question: "what do they confirm?" refers to whatever was
+        # just discussed. Resolving it from conversation state is what separates a
+        # conversational agent from keyword search — the corrective-RAG pattern
+        # calls this query transformation, and without it the bot refuses a
+        # question whose answer is already on screen.
+        refers_back = _is_context_only(text, seeds)
+        is_follow_up = bool(_FOLLOW_UP.match(text)) and bool(session.last_series)
+        if refers_back and session.last_series:
+            seeds = list(session.last_series)
+            is_follow_up = True
+
         if is_follow_up:
             # A follow-up names its own subject: "and unemployment?" must resolve
             # to unemployment, not to whatever the previous answer was about.
@@ -487,7 +520,7 @@ class Agent:
 
         # A window change is the point of a comparison question, so it leads.
         if wants_change and since.get("from_period") and since.get("absolute") is not None:
-            span = _span_phrase(window or since.get("from_period"))
+            span = _span_phrase(since.get("from_period"), window)
             moved = "up" if since["absolute"] > 0 else "down"
             amount = _fmt(abs(since["absolute"]), "pp" if as_rate else (unit or ""))
             verdict = _verdict(since["absolute"], higher)
@@ -576,14 +609,29 @@ class Agent:
         return "Latest readings: " + "; ".join(parts) + "." if parts else ""
 
 
-def _span_phrase(from_period: str | None) -> str:
-    """Turn a start period into 'since 2016' / 'over the last 10 years'."""
+def _span_phrase(from_period: str | None, requested: str | None = None) -> str:
+    """Describe the comparison window honestly.
+
+    Uses the *actual* first observation, not the window the user asked for. A
+    question about "10 years ago" against a series whose data starts in 2017 was
+    answered with "up 5.36 pp since 2016" — a year the series does not cover. The
+    stated period must be one the data supports, or the number is unverifiable
+    even when it is arithmetically correct.
+    """
     if not from_period:
         return "over the window"
+
     year = str(from_period)[:4]
-    if year.isdigit():
-        return f"since {year}"
-    return "over the window"
+    if not year.isdigit():
+        return "over the window"
+
+    if requested:
+        asked = str(requested)[:4]
+        if asked.isdigit() and asked != year:
+            # Say both: the user's intent and the data's real limit.
+            return f"since {year} (the earliest available data, not {asked})"
+
+    return f"since {year}"
 
 
 def _verdict(absolute: float, higher_is_better: bool | None) -> str | None:
@@ -762,6 +810,27 @@ def _is_future(period: str | None) -> bool:
 
     year = str(period)[:4]
     return year.isdigit() and int(year) > date.today().year
+
+
+def _is_context_only(text: str, seeds: list[str]) -> bool:
+    """True when the question names no subject and must borrow the last turn's.
+
+    Only one shape qualifies: the question names nothing this data covers. That
+    covers "what do they confirm?" (pronouns and a verb, no topics) and
+    "so what does that mean?" (confirmatory, no topics).
+
+    A question that *does* name a subject is never context-only, even if it also
+    contains a pronoun — "and unemployment? compare both to today" names
+    unemployment, so it must resolve to unemployment. Treating "both" as a
+    reference signal let the pronoun branch override the named subject and answer
+    about the previous series instead, which is the opposite of what was asked.
+    """
+    if seeds:
+        return False
+
+    has_reference = bool(_PRONOUN_REFERENCE.search(text))
+    confirming = bool(_CONFIRM_SEEKING.search(text))
+    return has_reference or confirming
 
 
 def _is_projection(node: graph_mod.Node) -> bool:
