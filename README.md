@@ -4,19 +4,20 @@ A live dashboard for South African macroeconomic statistics, with automated
 time-series forecasting, model tracking and a portable semantic model.
 
 **Public dashboard:** <https://ndu3000--sa-insights-dashboard.us-east.modal.run>
+**Chat API:** <https://ndu3000--sa-insights-chat-api.us-east.modal.run/docs>
 **Static mirror:** <https://ndu3000.github.io/sa-insights/>
 **MLflow:** <https://ndu3000--sa-insights-mlflow-server.us-east.modal.run>
 
-| | Static mirror | Public dashboard | Containerised app |
+| | Static mirror | Public dashboard | Chatbot |
 |---|---|---|---|
-| Data | Refreshed daily | Live warehouse | Refreshed daily |
-| Downloads | Pre-built | Generated on request | Generated on request |
-| Custom dashboards | Session only | Saved to the warehouse | Saved to the warehouse |
-| Model tracking | — | MLflow, public URL | MLflow |
-| Cold start | none (CDN) | ~8 s when idle | none |
+| Data | Refreshed daily | Live warehouse | Live warehouse |
+| Downloads | Pre-built | Generated on request | — |
+| Custom dashboards | Session only | Saved to the warehouse | — |
+| Ask questions | — | — | Cited answers or an honest refusal |
+| Cold start | none (CDN) | ~8 s when idle | ~9 s when idle |
 
-All three are fed by one pipeline. A scheduled serverless job on Modal refreshes
-the warehouse, re-runs every model, re-renders the artefacts and pushes — so the
+All are fed by one pipeline. A scheduled serverless job on Modal refreshes the
+warehouse, re-runs every model, re-renders the artefacts and pushes — so the
 static mirror is current to within a day rather than frozen. See
 [DEPLOYMENT.md](DEPLOYMENT.md).
 
@@ -32,6 +33,34 @@ static mirror is current to within a day rather than frozen. See
 | **Compare** | Indexed multi-series comparison, correlation matrix, scatter inspection |
 | **My dashboard** | Build a layout, save it, reload it later |
 | **Downloads** | Power BI bundle, Ossie model, CSVs — all built from live data |
+
+---
+
+## Ask it a question
+
+```bash
+curl -X POST https://ndu3000--sa-insights-chat-api.us-east.modal.run/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What is CPI inflation now?"}'
+```
+
+> CPI inflation (YoY) is **4.5%** (2026-09-01), up 1.10 pp year on year (a
+deterioration), with 10 citations from the warehouse.
+
+Three possible responses, and all are correct behaviour:
+
+| | When | Example |
+|---|---|---|
+| **Answer** | The data covers the question | "What is CPI inflation now?" |
+| **Clarify** | Genuinely ambiguous | "How has the economy improved?" → *which indicator, and over what period?* |
+| **Refuse** | Off-topic | "Who won the 2010 world cup?" |
+
+**Every number comes from a tool call, never from the model.** Prose is scanned
+for figures and rejected if any does not appear in a tool result, so an invented
+statistic cannot reach a reader. It also works with no LLM at all — the model
+only rewrites prose, and the answer is correct without it.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md#chatbot) for the design and what was learned.
 
 ---
 
