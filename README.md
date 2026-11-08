@@ -3,18 +3,22 @@
 A live dashboard for South African macroeconomic statistics, with automated
 time-series forecasting, model tracking and a portable semantic model.
 
-**Static demo:** <https://ndu3000.github.io/sa-insights/>
-**Live app:** run locally or in Docker — see [DEPLOYMENT.md](DEPLOYMENT.md)
+**Public dashboard:** <https://ndu3000--sa-insights-dashboard.us-east.modal.run>
+**Static mirror:** <https://ndu3000.github.io/sa-insights/>
+**MLflow:** <https://ndu3000--sa-insights-mlflow-server.us-east.modal.run>
 
-| | Static demo | Containerised app |
-|---|---|---|
-| Data | Snapshot at last commit | Refreshed daily, live |
-| Downloads | Pre-built | Generated on request |
-| Custom dashboards | Session only | Saved to the warehouse |
-| Model tracking | — | MLflow |
+| | Static mirror | Public dashboard | Containerised app |
+|---|---|---|---|
+| Data | Refreshed daily | Live warehouse | Refreshed daily |
+| Downloads | Pre-built | Generated on request | Generated on request |
+| Custom dashboards | Session only | Saved to the warehouse | Saved to the warehouse |
+| Model tracking | — | MLflow, public URL | MLflow |
+| Cold start | none (CDN) | ~8 s when idle | none |
 
-The static demo exists for a free public preview. Everything below — live data,
-live downloads, saved dashboards, model lineage — requires the container.
+All three are fed by one pipeline. A scheduled serverless job on Modal refreshes
+the warehouse, re-runs every model, re-renders the artefacts and pushes — so the
+static mirror is current to within a day rather than frozen. See
+[DEPLOYMENT.md](DEPLOYMENT.md).
 
 ---
 
@@ -108,7 +112,9 @@ artifact. The run id is stored alongside the forecast, so the database and
 MLflow cross-reference.
 
 Tracking is **gated on `MLFLOW_TRACKING_URI`** — with no URI set it is a no-op,
-so a laptop run needs no server.
+so a laptop run needs no server. On Modal the URL is resolved at startup from the
+deployed function itself rather than hardcoded, so it cannot go stale across
+deploys.
 
 ---
 
@@ -158,11 +164,17 @@ sources.py ──► refresh.py ──► DuckDB ──► app.py (Streamlit)
 
 - **Store:** DuckDB — analytical time series, no server, one file to back up
 - **Packaging:** uv with `pyproject.toml` + `uv.lock`
-- **Scheduling:** APScheduler in a dedicated `worker` container
+- **Scheduling:** a serverless cron on Modal (05:15 UTC), or APScheduler in a
+  dedicated `worker` container when running under Docker
 - **Downloads:** rendered from the warehouse per request, never committed
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for container setup, environment variables,
-and the reasoning behind each choice.
+Deployed, the same pipeline runs on Modal: `refresh_and_publish` does the
+fetch/forecast/render/push cycle, `dashboard` serves Streamlit publicly, and
+`mlflow_server` serves the tracking UI. State lives on two Volumes so it
+survives redeploys.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for setup, environment variables, measured
+cold-start and run times, and the reasoning behind each choice.
 
 ---
 
@@ -185,8 +197,9 @@ sa-insights/
 │   └── ui.py                 # design system, Plotly builders, CSS
 ├── scripts/                  # one-off exporters for the static site
 ├── semantic/                 # committed Ossie artefacts + official schema
+├── modal_app.py              # serverless deployment: cron, dashboard, MLflow
 ├── Dockerfile                # multi-stage, uv, non-root, healthcheck
-└── docker-compose.yml        # app + worker (+ optional MLflow profile)
+└── docker-compose.yml        # app + worker + MLflow
 ```
 
 ---

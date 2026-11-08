@@ -1,19 +1,23 @@
 # Deployment
 
 **Live static mirror:** <https://ndu3000.github.io/sa-insights/>
+**Live dashboard:** <https://ndu3000--sa-insights-dashboard.us-east.modal.run>
+**MLflow:** <https://ndu3000--sa-insights-mlflow-server.us-east.modal.run>
 **Repository:** <https://github.com/Ndu3000/sa-insights>
 
-This project has two deployment modes, serving different purposes. Read the
-difference before assuming the public site is live data — it is not.
+There are three ways to run this: a public static mirror, a containerised stack,
+and a serverless deployment on Modal.
 
-| Mode | What it is | Data freshness |
-|------|-----------|----------------|
-| **Static mirror** (GitHub Pages) | A rendered snapshot of the dashboard | Frozen at the last commit |
-| **Containerised app** (Docker) | The real application with a live warehouse | Refreshed daily, downloads on demand |
+| Mode | What it is | Data freshness | Cost |
+|------|-----------|----------------|------|
+| **Static mirror** (GitHub Pages) | A rendered snapshot of the dashboard | **Refreshed daily** by a Modal cron | Free |
+| **Serverless** (Modal) | The refresh pipeline, a public dashboard and public MLflow | Live | ~$0.02/day |
+| **Containerised** (Docker) | The full stack on your own machine | Refreshed daily | Your hardware |
 
-The Pages site exists because it is free and public. It cannot satisfy the
-requirements around live data, live downloads, customisation or model tracking —
-those need the container.
+The Pages site is no longer a frozen snapshot: a scheduled Modal job refreshes
+the warehouse, re-renders every artefact and pushes the result, so the public
+URL is current to within a day. What it cannot do is serve a live query or
+generate a download on demand — that needs the dashboard or the container.
 
 ---
 
@@ -85,34 +89,115 @@ at runtime even when installed.
 
 ## Serverless refresh on Modal
 
-GitHub Actions cannot run on this account (see [Why the Actions workflow does
-not run](#why-the-actions-workflow-does-not-run)), so the daily refresh runs on
-Modal instead. Modal needs only a `git push` credential, which works
-independently of the Actions billing lock.
+GitHub Actions cannot run on this account — jobs are refused at dispatch by an
+account-level billing lock (see [Why the Actions workflow does not
+run](#why-the-actions-workflow-does-not-run)). Modal runs the same pipeline on
+its own infrastructure and needs only a `git push` credential, which works
+independently of that lock.
+
+### What is deployed
+
+| Function | URL | Purpose |
+|----------|-----|---------|
+| `refresh_and_publish` | cron `15 5 * * *` UTC | fetch → forecast → render → push to `main` |
+| `dashboard` | <https://ndu3000--sa-insights-dashboard.us-east.modal.run> | the Streamlit app, public |
+| `mlflow_server` | <https://ndu3000--sa-insights-mlflow-server.us-east.modal.run> | MLflow UI, public |
+
+Two Volumes back the deployment:
+
+| Volume | Mount | Holds |
+|--------|-------|-------|
+| `sa-insights-data` | `/data` | DuckDB warehouse, source cache, refresh state |
+| `sa-insights-mlflow` | `/mlflow` | MLflow SQLite backend and artefacts |
+
+They are separate because they have different retention needs: MLflow can be
+discarded without losing data, the warehouse cannot.
+
+### Deploying
 
 ```bash
 uv sync --extra deploy                    # installs the modal CLI
-uv run modal setup                        # interactive login
-uv run modal secret create github-token GITHUB_TOKEN=<fine-grained PAT>
-uv run modal deploy modal_app.py          # cron + optional dashboard
+uv run modal setup                        # browser login; writes ~/.modal.toml
+uv run modal secret create github-token GITHUB_TOKEN=<PAT>
+uv run modal deploy modal_app.py
 uv run modal run modal_app.py::refresh_and_publish   # trigger now
 ```
 
-The PAT needs **Contents: write** on the repository. It is read from the Modal
-secret at runtime and never baked into an image layer.
+The PAT needs **Contents: write** on the repository. It is injected from the
+Modal secret at runtime and never baked into an image layer.
 
-- `refresh_and_publish` — cron at 05:15 UTC (07:15 SAST). Fetches, forecasts,
-  renders every artefact and pushes to `main`, after which Pages serves the new
-  snapshot.
-- `dashboard` — optional public Streamlit URL. Idle containers cost nothing; the
-  first visit after idle pays a cold start (torch import + Chronos weights).
+`modal setup` prints a token-flow URL; opening it in a browser already signed in
+to Modal completes the exchange. The token is written to `~/.modal.toml`.
 
-The DuckDB warehouse lives on a Modal Volume (`sa-insights-data`), so it
-survives redeploys — unlike a Hugging Face Space, whose disk resets on restart.
+**On Windows**, run the CLI with `PYTHONUTF8=1`. It prints `✓` on success, which
+the default cp1252 console cannot encode — the deploy has already succeeded by
+then, so the failure is cosmetic but alarming.
 
-MLflow is deliberately left unconfigured on Modal: without a tracking URI the
-tracer degrades to a no-op. Setting one would make the dashboard advertise a UI
-URL that no public host can serve, which is the dead-link bug fixed earlier.
+### Measured behaviour
+
+| | Value |
+|---|---|
+| Full refresh (34 series incl. Chronos-Bolt) | **205 s** |
+| Dashboard cold start | **~8 s** |
+| MLflow cold start | ~20 s (after the first build) |
+| Image build (cold) | ~4 min; ~70 s with layers cached |
+| Image size | 2.2 GB (torch CPU is ~200 MB of it) |
+| Daily cost | **~$0.02** |
+
+At that rate the free monthly credit covers the cron many times over.
+
+### Why the foundation model runs here and not in the browser
+
+Chronos-Bolt is a 48M-parameter network. Shipping ~191 MB of weights so
+WebAssembly could execute hundreds of forward passes is untenable on mobile, so
+the model runs at refresh time and the site ships only the resulting numbers.
+
+### Why MLflow is a Modal function
+
+MLflow 3 deprecated the filesystem backend, so it needs a SQLite file — which
+needs storage that outlives a container. A Volume provides that, and a Volume
+does not exist without an app, so the server lives here beside the refresh that
+writes to it.
+
+The dashboard does **not** hardcode its URL. `_mlflow_env()` resolves it at
+startup with `Function.from_name("sa-insights", "mlflow_server").get_web_url()`
+and exports both `MLFLOW_TRACKING_URI` and `MLFLOW_UI_URL`. That keeps
+`tracking.py`'s two-variable split intact — the reason those are separate is
+that in Docker the SDK target is the compose service name and only the UI URL is
+browser-reachable — while avoiding a URL baked into an image that goes stale on
+the next deploy. If resolution fails, tracking is left unconfigured rather than
+pointed at a dead link.
+
+Two things went wrong building it, both worth knowing:
+
+- **Naming the function `mlflow` shadowed the `mlflow` package** inside this
+  module. Modal resolves remote functions by name, so it surfaced as
+  `module 'modal_app' has no attribute 'mlflow'` in a crash loop. It is
+  `mlflow_server`.
+- **A stale module shadowed every local edit.** The image's `WORKDIR` is `/repo`,
+  which already contains a *cloned* copy of `modal_app.py`. Modal imported that
+  clone rather than the file being deployed, so local edits were silently
+  ignored and the error message named a function that plainly existed. The
+  deployed file is now copied over the clone at both import paths, and
+  re-asserted after every `git reset` in `_sync_repo()`.
+
+### Why the publish push is retried
+
+A refresh takes ~25 minutes. Syncing the checkout only at the start left a
+window the full width of the run: any commit landing on `main` meanwhile made
+the final push non-fast-forward, and the run failed *after* doing all the
+expensive work. The first live run did exactly that — fetched, forecast,
+rendered and committed successfully, then lost the push to a concurrent host
+commit. `_publish_with_retry()` now syncs immediately before rendering
+(narrowing the window to the seconds a render takes) and retries a rejected push
+up to three times. Only push rejections are retried; a render error would fail
+identically every time and would just burn 3× the compute.
+
+### Hugging Face token
+
+Chronos weights download anonymously, which logs a rate-limit warning on every
+cold start. A read-only `HF_TOKEN` added as a Modal secret removes it; it is not
+required.
 
 ## Model tracking (MLflow)
 
@@ -223,11 +308,12 @@ uv run python -m sa_insights.scheduler --once
 
 Published from `docs/` on `main` via branch-based Pages.
 
-**This mode does not refresh itself.** The numbers are whatever was last
-committed. The site header states the snapshot time; treat it as a demo, not a
-data source.
+**This mode is refreshed by the Modal cron**, not by GitHub Actions. The job at
+05:15 UTC re-renders `docs/` and pushes; Pages then rebuilds itself. The site
+header states the snapshot time, so staleness is always visible rather than
+assumed.
 
-To update it, generate and commit:
+To update it by hand:
 
 ```bash
 uv run python -m sa_insights.cli export --out dist   # artefacts
@@ -242,9 +328,10 @@ dispatch on this account:
 
 > The job was not started because your account is locked due to a billing issue.
 
-That is an account-level block, not a workflow defect. Once cleared, switch
-Pages to **GitHub Actions** and the daily refresh runs unattended. Until then,
-the container is the way to get live data.
+That is an account-level block, not a workflow defect. The same schedule is
+served by `refresh_and_publish` on Modal instead, so the daily refresh happens
+either way. If the lock is ever cleared, either path works — they produce
+identical output.
 
 ---
 
@@ -277,8 +364,9 @@ error and exits rather than serving an empty dashboard.
 committing `docs/`; it copies the semantic documents into `docs/semantic/`
 because Pages serves only that directory.
 
-**MLflow UI unreachable** — the `tracking` profile must be active:
-`docker compose --profile tracking up -d`.
+**MLflow UI unreachable** — the `mlflow` service starts by default (it has no
+profile); check `docker compose ps mlflow` for health. On Modal, MLflow cold-starts
+in ~20s, so the first request after idle can be slow.
 
 **Chronos download fails** — Hugging Face rate-limits unauthenticated pulls. Set
 `HF_TOKEN` to a read-only token. Never commit it; pass it through the
