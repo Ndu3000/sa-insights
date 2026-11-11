@@ -662,7 +662,7 @@
           "period"
         ]
       ],
-      "description": "Manufacturing production index. Source: SARB, updated monthly. Covers 1980-01 to 2026-08.",
+      "description": "Manufacturing production index. Source: SARB, updated monthly. Covers 1980-01 to 2026-09.",
       "ai_context": {
         "synonyms": [
           "manufacturing output",
@@ -791,7 +791,7 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"series_key\": \"manufacturing\", \"label\": \"Manufacturing output\", \"short_label\": \"Manufacturing\", \"category\": \"Growth & Output\", \"unit\": \"index (2019=100)\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 560, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-08-01\", \"last_value\": 89.6}"
+          "data": "{\"series_key\": \"manufacturing\", \"label\": \"Manufacturing output\", \"short_label\": \"Manufacturing\", \"category\": \"Growth & Output\", \"unit\": \"index (2019=100)\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 561, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-09-01\", \"last_value\": 89.5}"
         }
       ]
     },
@@ -5538,7 +5538,7 @@
   "custom_extensions": [
     {
       "vendor_name": "SA_INSIGHTS",
-      "data": "{\"generated_at\": \"2026-11-10T05:22:16+00:00\", \"document_version\": \"0.2.0.dev0\", \"series_count\": 33, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
+      "data": "{\"generated_at\": \"2026-11-11T05:21:03+00:00\", \"document_version\": \"0.2.0.dev0\", \"series_count\": 33, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
     }
   ]
 }
