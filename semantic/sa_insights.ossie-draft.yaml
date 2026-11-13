@@ -528,7 +528,7 @@ datasets:
   unique_keys:
   - - period
   description: 'Gold mining production volume index. Source: SARB, updated monthly. Covers 1980-01 to
-    2026-08.'
+    2026-09.'
   ai_context:
     synonyms:
     - mining output
@@ -614,8 +614,8 @@ datasets:
   - vendor_name: SA_INSIGHTS
     data: '{"series_key": "mining", "label": "Mining output", "short_label": "Mining", "category": "Growth
       & Output", "unit": "index (2019=100)", "frequency": "M", "provider": "sarb", "higher_is_better":
-      null, "upstream_indicator": {}, "observations": 560, "first_period": "1980-01-01", "last_period":
-      "2026-08-01", "last_value": 80.5}'
+      null, "upstream_indicator": {}, "observations": 561, "first_period": "1980-01-01", "last_period":
+      "2026-09-01", "last_value": 81.7}'
 - name: fct_vehicle_sales
   source: sa_insights.fct_vehicle_sales
   primary_key:
@@ -3633,7 +3633,7 @@ metrics:
     as each fact's observation_count metric.
 custom_extensions:
 - vendor_name: SA_INSIGHTS
-  data: '{"generated_at": "2026-11-12T05:34:57+00:00", "document_version": "0.2.0.dev0", "series_count":
+  data: '{"generated_at": "2026-11-13T05:34:42+00:00", "document_version": "0.2.0.dev0", "series_count":
     33, "generator": "scripts/build_semantic_model.py", "note": "0.1.1 is the released shape (semantic_model
     array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema
     is unstable."}'
