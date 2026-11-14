@@ -5540,7 +5540,7 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"generated_at\": \"2026-11-13T05:34:42+00:00\", \"document_version\": \"0.1.1\", \"series_count\": 33, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
+          "data": "{\"generated_at\": \"2026-11-14T05:27:24+00:00\", \"document_version\": \"0.1.1\", \"series_count\": 33, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
         }
       ]
     }
