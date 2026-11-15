@@ -170,3 +170,115 @@ def log_forecast_run(
         # should not disable tracking for every subsequent series in the run.
         LOG.warning("mlflow logging failed for %s: %s: %s", series_key, type(exc).__name__, exc)
         return None
+
+
+#: Chat turns go to their own experiment. Mixing them with forecast runs would
+#: make both harder to read: a forecast run is one model fit, a chat turn is a
+#: retrieval decision, and their metrics do not compare.
+CHAT_EXPERIMENT = os.getenv("MLFLOW_CHAT_EXPERIMENT", "sa-insights-chat")
+
+
+def log_chat_turn(
+    *,
+    question: str,
+    answer: Any,
+    latency_ms: float,
+    phrasing: str,
+    session_id: str | None = None,
+) -> str | None:
+    """Log one chat turn. Returns the MLflow run id, or None if disabled.
+
+    Why log questions at all
+    ------------------------
+    Every retrieval bug found so far was spotted by a human reading a screenshot
+    ("unemployment answered with the bond yield"). Nothing threw, so no test
+    caught it. Recording the question alongside the series actually retrieved
+    makes "which questions fail to ground?" a query instead of an observation —
+    and gives the eval suite new cases drawn from real usage rather than guesses.
+
+    What is deliberately NOT logged
+    -------------------------------
+    No session transcript and no user identifier beyond an opaque session key.
+    The question text is needed to diagnose retrieval, but this is a public
+    unauthenticated endpoint, so nothing here should become a profile of a
+    person.
+
+    Never raises: a tracking outage must not break an answer.
+    """
+    if not enabled():
+        return None
+
+    try:
+        import mlflow
+
+        mlflow.set_tracking_uri(TRACKING_URI)
+        mlflow.set_experiment(CHAT_EXPERIMENT)
+
+        kind = getattr(answer, "kind", "unknown")
+        evidence = list(getattr(answer, "evidence_series", []) or [])
+        unverified = list(getattr(answer, "unverified_numbers", []) or [])
+        citations = list(getattr(answer, "citations", []) or [])
+
+        # A short, readable run name; the full question is a param.
+        label = question.strip().replace("\n", " ")[:48] or "(empty)"
+        with mlflow.start_run(run_name=f"{kind}: {label}") as run:
+            mlflow.log_params(
+                {
+                    "question": question[:500],
+                    "kind": kind,
+                    "phrasing": phrasing,
+                    "primary_series": evidence[0] if evidence else "",
+                    "series_count": len(evidence),
+                    "session": (session_id or "")[:40],
+                }
+            )
+
+            metrics = {
+                "latency_ms": float(latency_ms),
+                "citations": float(len(citations)),
+                "unverified_numbers": float(len(unverified)),
+                # The two signals worth alerting on: a refusal that should have
+                # answered, and a figure that failed verification.
+                "answered": 1.0 if kind == "answer" else 0.0,
+                "verified": 0.0 if unverified else 1.0,
+            }
+            confidence = getattr(answer, "confidence", None)
+            if confidence is not None and confidence == confidence:
+                metrics["confidence"] = float(confidence)
+            mlflow.log_metrics(metrics)
+
+            mlflow.set_tags(
+                {
+                    "source": "sa-insights-chat",
+                    "grounded": str(bool(evidence)).lower(),
+                    "needs_review": str(bool(unverified) or kind == "refuse").lower(),
+                }
+            )
+
+            # The answer and its evidence as an artefact, so a bad turn can be
+            # inspected without reproducing it.
+            import json
+            import tempfile
+            from pathlib import Path
+
+            payload = {
+                "question": question,
+                "kind": kind,
+                "text": getattr(answer, "text", ""),
+                "evidence_series": evidence,
+                "unverified_numbers": unverified,
+                "follow_up": getattr(answer, "follow_up", None),
+                "citations": [
+                    c.as_dict() if hasattr(c, "as_dict") else str(c) for c in citations
+                ],
+            }
+            with tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "turn.json"
+                path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+                mlflow.log_artifact(str(path))
+
+            return run.info.run_id
+
+    except Exception as exc:  # noqa: BLE001 - tracking is best-effort
+        LOG.warning("mlflow chat logging failed: %s: %s", type(exc).__name__, exc)
+        return None

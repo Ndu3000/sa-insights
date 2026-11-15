@@ -5,6 +5,7 @@ Run with:  streamlit run app.py
 
 from __future__ import annotations
 
+import time
 import warnings
 from datetime import datetime
 
@@ -1452,13 +1453,24 @@ def view_chat(summary: dict):
     if question:
         with st.spinner("Checking the data…"):
             try:
-                # The return value is redundant here: agent.ask appends the turn
-                # to the session itself, and the rerun below renders it from
-                # there. Storing it would be a variable nobody reads.
-                agent.ask(question, session)
+                started = time.perf_counter()
+                answer = agent.ask(question, session)
+                elapsed_ms = (time.perf_counter() - started) * 1000
             except Exception as exc:  # noqa: BLE001 - a bad question must not break the page
                 st.error(f"Could not answer that: {exc}")
                 return
+            # Same tracking as the HTTP API, so a question asked in the dashboard
+            # is as diagnosable as one asked over curl. Best-effort: log_chat_turn
+            # swallows its own failures and tracking is gated on a URI.
+            from sa_insights.chat import llm as _llm
+
+            tracking.log_chat_turn(
+                question=question,
+                answer=answer,
+                latency_ms=elapsed_ms,
+                phrasing=_llm.DEFAULT_MODEL if _llm.available() else "deterministic",
+                session_id=_session_owner(),
+            )
         # Rerun so the new exchange renders above the input box, keeping the
         # conversation in reading order with the newest at the bottom.
         st.rerun()

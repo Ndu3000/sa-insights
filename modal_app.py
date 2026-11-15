@@ -487,6 +487,12 @@ def chat_api() -> None:
     """
     _sync_repo()
 
+    # Must run before uvicorn imports the app: tracking.py reads
+    # MLFLOW_TRACKING_URI into a module constant at import time, so setting it
+    # afterwards has no effect at all. That exact ordering bug once left MLflow
+    # empty while the logs cheerfully reported a tracking URL.
+    _apply_mlflow_env()
+
     subprocess.Popen(
         [
             "uvicorn",

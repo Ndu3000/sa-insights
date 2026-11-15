@@ -16,12 +16,15 @@ alike, and the AG-UI adapter sits on top of something stable.
 from __future__ import annotations
 
 import os
+import threading
+import time
 from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from .. import tracking
 from .agent import Agent, Session
 from . import llm, tools
 
@@ -147,9 +150,26 @@ def ask(request: AskRequest) -> AskResponse:
     Never raises for a bad question: "I cannot answer that" is a valid response
     and must reach the user as one, not as a 500.
     """
+    started = time.perf_counter()
     answer = _AGENT.ask(request.question, _session(request.session_id))
-    payload = answer.as_dict()
-    return AskResponse(**payload)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+
+    # Tracking is best-effort and must never delay or fail an answer, so it is
+    # fire-and-forget on a daemon thread. `log_chat_turn` already swallows its
+    # own errors; the thread is about latency, not safety.
+    threading.Thread(
+        target=tracking.log_chat_turn,
+        kwargs={
+            "question": request.question,
+            "answer": answer,
+            "latency_ms": elapsed_ms,
+            "phrasing": llm.DEFAULT_MODEL if llm.available() else "deterministic",
+            "session_id": request.session_id,
+        },
+        daemon=True,
+    ).start()
+
+    return AskResponse(**answer.as_dict())
 
 
 @app.post("/reset")
