@@ -504,3 +504,80 @@ def chat_api() -> None:
         ],
         cwd=REPO_PATH,
     )
+
+
+# --------------------------------------------------------------------------- #
+# Nightly chat evaluation
+# --------------------------------------------------------------------------- #
+@app.function(
+    image=image,
+    volumes={DATA_PATH: data_vol},
+    # Both are needed: the warehouse for real answers, and the key so the
+    # phrasing path is exercised. Evaluating only the deterministic composer
+    # would miss the regressions that actually appeared, which were all in the
+    # model's reading of the facts.
+    secrets=_optional_secrets(),
+    timeout=60 * 30,
+    # 06:00 UTC, after the 05:15 refresh, so the suite runs against fresh data
+    # rather than yesterday's warehouse.
+    schedule=modal.Cron("0 6 * * *"),
+    retries=modal.Retries(max_retries=1, backoff_coefficient=2.0),
+)
+def eval_chat_nightly() -> dict:
+    """Run the chat regression suite and record the result.
+
+    Why scheduled as well as gated
+    ------------------------------
+    ``scripts/deploy.py`` blocks a bad build at deploy time, but it is a
+    convention: a bare ``modal deploy`` bypasses it, and GitHub Actions cannot
+    enforce anything on this account while it is billing-locked. A nightly run
+    means a regression that slips through is found within a day rather than by
+    a user reading a wrong answer.
+
+    Runs the same CASES as the gate, so the two cannot drift apart.
+    """
+    _sync_repo()
+    _apply_mlflow_env()
+
+    from scripts.eval_chat import CASES, log_to_mlflow, run_case, summarise
+    from sa_insights.chat import llm
+    from sa_insights.chat.agent import Agent
+
+    agent = Agent(llm=llm.phrase) if llm.available() else Agent()
+    results = [run_case(agent, case) for case in CASES]
+    metrics = summarise(results)
+
+    failures = [
+        {
+            "question": r.case.question,
+            "bug": r.case.bug,
+            "expected_kind": r.case.expect_kind,
+            "actual_kind": r.kind,
+            "evidence": r.evidence,
+            "unverified": r.unverified,
+        }
+        for r in results
+        if not r.passed
+    ]
+
+    run_id = log_to_mlflow(results, metrics)
+
+    summary = {
+        "cases": len(results),
+        "phrasing": llm.DEFAULT_MODEL if llm.available() else "deterministic",
+        "mlflow_run_id": run_id,
+        "failures": failures,
+        **{k: round(v, 4) for k, v in metrics.items()},
+    }
+
+    # Print a loud, greppable line rather than only returning a dict: the point
+    # of a scheduled check is that a failure is visible in the logs without
+    # anyone having to open MLflow.
+    if failures:
+        print(f"EVAL FAILED: {len(failures)}/{len(results)} cases", flush=True)
+        for f in failures:
+            print(f"  - {f['question']} (expected {f['expected_kind']}, got {f['actual_kind']})")
+    else:
+        print(f"EVAL PASSED: {len(results)} cases, pass_rate={metrics.get('pass_rate')}")
+
+    return summary
