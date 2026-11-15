@@ -178,7 +178,7 @@ def sidebar(summary: dict, meta: pd.DataFrame, stored_keys: set[str]):
 
         st.markdown(
             '<p style="font-size:.7rem;font-weight:700;letter-spacing:.1em;'
-            'text-transform:uppercase;color:#5C7089;margin-bottom:.2rem">Warehouse</p>',
+            'text-transform:uppercase;color:var(--faint);margin-bottom:.2rem">Warehouse</p>',
             unsafe_allow_html=True,
         )
 
@@ -255,7 +255,7 @@ def sidebar(summary: dict, meta: pd.DataFrame, stored_keys: set[str]):
         st.divider()
         st.markdown(
             '<p style="font-size:.7rem;font-weight:700;letter-spacing:.1em;'
-            'text-transform:uppercase;color:#5C7089;margin-bottom:.3rem">Display</p>',
+            'text-transform:uppercase;color:var(--faint);margin-bottom:.3rem">Display</p>',
             unsafe_allow_html=True,
         )
         st.session_state.setdefault("smoothing", False)
@@ -1546,8 +1546,8 @@ def main():
 
     sources = sorted({provider_of(s) for s in SERIES})
     st.markdown(
-        f'<p style="font-size:.7rem;color:#5C7089;text-align:center;margin-top:2.5rem;'
-        f'padding-top:1rem;border-top:1px solid rgba(148,163,184,.16)">'
+        f'<p style="font-size:.7rem;color:var(--faint);text-align:center;margin-top:2.5rem;'
+        f'padding-top:1rem;border-top:1px solid var(--border)">'
         f'SA Insights · {summary["series"]} series · {total_obs:,} observations · '
         f'{summary["forecasts"]} forecast runs · '
         f'sources: {" · ".join(sources)} · '
