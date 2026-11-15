@@ -39,7 +39,18 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown(ui.CSS, unsafe_allow_html=True)
+# Theme selection must happen before the stylesheet and before any chart, because
+# `apply_theme` repoints the module palette constants that every Plotly builder
+# reads. Applying it later would leave the first render's figures in the previous
+# theme — the half-themed flicker that makes a light mode look broken.
+#
+# `appearance` is the widget's own key, so it is the single source of truth: the
+# widget both reads and writes it, and there is no mirrored copy to drift.
+if "appearance" not in st.session_state:
+    st.session_state.appearance = "dark"
+
+ui.apply_theme(st.session_state.appearance)
+st.markdown(ui.theme_css(st.session_state.appearance), unsafe_allow_html=True)
 
 PROVIDER_LABEL = {
     "worldbank": "World Bank",
@@ -147,6 +158,24 @@ def _tile_label(spec) -> str:
 # ---------------------------------------------------------------------------
 def sidebar(summary: dict, meta: pd.DataFrame, stored_keys: set[str]):
     with st.sidebar:
+        # Theme toggle, at the top because it is the one control that changes
+        # everything below it. A segmented control reads better than a switch for
+        # two named states — a switch labelled "Light mode" leaves the current
+        # state ambiguous when off.
+        #
+        # The widget owns the state directly (no separate `theme` key mirrored
+        # into a widget key): two keys for one value desynchronise, and the widget
+        # key silently overwrote the app's on every rerun, so switching did
+        # nothing. `st.session_state.appearance` is now the single source.
+        st.radio(
+            "Appearance",
+            options=["dark", "light"],
+            format_func=lambda value: "☾  Dark" if value == "dark" else "☀  Light",
+            horizontal=True,
+            label_visibility="collapsed",
+            key="appearance",
+        )
+
         st.markdown(
             '<p style="font-size:.7rem;font-weight:700;letter-spacing:.1em;'
             'text-transform:uppercase;color:#5C7089;margin-bottom:.2rem">Warehouse</p>',

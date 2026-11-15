@@ -42,6 +42,95 @@ def palette(n: int) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Themes
+# ---------------------------------------------------------------------------
+# Colours live in two places that must agree: the CSS variables consumed by the
+# stylesheet, and the module constants above, which every Plotly builder reads.
+# Rendering charts with dark tokens on a light page is the classic half-finished
+# theme — it looks right in the header and is unreadable everywhere else. So a
+# theme carries both, and `apply_theme` swaps them together.
+#
+# The light accents are darkened rather than reused: the dark green (#3DDC97) is
+# 2.2:1 against white, far below the 4.5:1 needed for text and thin chart lines.
+LIGHT_PALETTE = {
+    "INK": "#F4F6FA",
+    "SURFACE": "#FFFFFF",
+    "SURFACE_2": "#EDF1F7",
+    "BORDER": "rgba(15,23,42,0.12)",
+    "TEXT": "#0F172A",
+    "MUTED": "#475569",
+    "FAINT": "#64748B",
+    "ACCENT": "#0F8A5F",
+    "ACCENT_DIM": "#0B6E4C",
+    "AMBER": "#A15C00",
+    "CORAL": "#C0392B",
+    "SKY": "#1668B8",
+    "VIOLET": "#5B4BC4",
+}
+
+DARK_SERIES_COLORS = list(SERIES_COLORS)
+LIGHT_SERIES_COLORS = [
+    "#0F8A5F", "#1668B8", "#A15C00", "#C0392B",
+    "#5B4BC4", "#0E7C74", "#B45309", "#3F7D20",
+]
+
+#: Name of the theme currently applied to the module constants.
+CURRENT_THEME = "dark"
+
+_DARK_PALETTE = {name: globals()[name] for name in LIGHT_PALETTE}
+
+
+def apply_theme(name: str) -> None:
+    """Repoint the module palette constants at a theme.
+
+    Charts read these globals, so mutating them re-skins every figure without
+    touching a chart builder — which keeps the change small and the result
+    uniform. Called once per render, before any figure is created.
+    """
+    global CURRENT_THEME, SERIES_COLORS
+
+    theme = name if name in {"dark", "light"} else "dark"
+    CURRENT_THEME = theme
+    source = _DARK_PALETTE if theme == "dark" else LIGHT_PALETTE
+
+    for key, value in source.items():
+        globals()[key] = value
+
+    SERIES_COLORS = DARK_SERIES_COLORS if theme == "dark" else LIGHT_SERIES_COLORS
+
+
+def theme_css(theme: str = "dark") -> str:
+    """Return the stylesheet with the theme's tokens substituted.
+
+    The stylesheet declares `:root` variables from a marker, and every rule reads
+    those variables, so switching theme is a data change rather than a set of
+    find-and-replace edits across the rules.
+    """
+    t = {
+        "ink": LIGHT_PALETTE["INK"] if theme == "light" else _DARK_PALETTE["INK"],
+        "surface": LIGHT_PALETTE["SURFACE"] if theme == "light" else _DARK_PALETTE["SURFACE"],
+        "surface2": LIGHT_PALETTE["SURFACE_2"] if theme == "light" else _DARK_PALETTE["SURFACE_2"],
+        "sidebar": "#EDF1F6" if theme == "light" else "#0D1626",
+        "border": LIGHT_PALETTE["BORDER"] if theme == "light" else _DARK_PALETTE["BORDER"],
+        "border_strong": "rgba(15,23,42,0.22)" if theme == "light" else "rgba(148,163,184,0.30)",
+        "text": LIGHT_PALETTE["TEXT"] if theme == "light" else _DARK_PALETTE["TEXT"],
+        "muted": LIGHT_PALETTE["MUTED"] if theme == "light" else _DARK_PALETTE["MUTED"],
+        "faint": LIGHT_PALETTE["FAINT"] if theme == "light" else _DARK_PALETTE["FAINT"],
+        "accent": LIGHT_PALETTE["ACCENT"] if theme == "light" else _DARK_PALETTE["ACCENT"],
+        "accent_ink": "#FFFFFF" if theme == "light" else "#04180F",
+        "amber": LIGHT_PALETTE["AMBER"] if theme == "light" else _DARK_PALETTE["AMBER"],
+        "coral": LIGHT_PALETTE["CORAL"] if theme == "light" else _DARK_PALETTE["CORAL"],
+        "sky": LIGHT_PALETTE["SKY"] if theme == "light" else _DARK_PALETTE["SKY"],
+        "violet": LIGHT_PALETTE["VIOLET"] if theme == "light" else _DARK_PALETTE["VIOLET"],
+        "brand_a": "#007A4D",
+        "brand_b": LIGHT_PALETTE["ACCENT"] if theme == "light" else _DARK_PALETTE["ACCENT"],
+        "brand_c": LIGHT_PALETTE["SKY"] if theme == "light" else _DARK_PALETTE["SKY"],
+    }
+    variables = "\n".join(f"  --{key}:{value};" for key, value in t.items())
+    return CSS.replace("__THEME_TOKENS__", variables)
+
+
+# ---------------------------------------------------------------------------
 # Number formatting
 # ---------------------------------------------------------------------------
 def fmt(value: float | None, spec_decimals: int = 1, unit: str = "") -> str:
@@ -527,9 +616,7 @@ CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --ink:#0B1220; --surface:#111C2E; --surface2:#16243A;
-  --border:rgba(148,163,184,.16); --text:#E8EEF7; --muted:#8FA3BF; --faint:#5C7089;
-  --accent:#3DDC97; --amber:#F5B94B; --coral:#FF6B6B; --sky:#4FB3FF;
+__THEME_TOKENS__
 }
 
 html, body, [class*="css"], .stApp {
@@ -547,10 +634,10 @@ html, body, [class*="css"], .stApp {
 }
 .brand-mark {
   width:38px; height:38px; border-radius:11px; flex:0 0 auto;
-  background:linear-gradient(140deg,#007A4D 0%,#3DDC97 45%,#4FB3FF 100%);
+  background:linear-gradient(140deg,var(--brand_a) 0%,var(--brand_b) 45%,var(--brand_c) 100%);
   display:grid; place-items:center;
   box-shadow:0 6px 22px rgba(61,220,151,.25);
-  font-weight:800; font-size:.95rem; color:#04180F; letter-spacing:-.02em;
+  font-weight:800; font-size:.95rem; color:var(--accent_ink); letter-spacing:-.02em;
 }
 .brand-text h1 {
   font-size:1.06rem; font-weight:700; color:var(--text);
@@ -589,9 +676,9 @@ html, body, [class*="css"], .stApp {
   padding:.12rem .42rem; border-radius:6px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.kpi-delta.up   { color:#3DDC97; background:rgba(61,220,151,.12); }
-.kpi-delta.down { color:#FF6B6B; background:rgba(255,107,107,.12); }
-.kpi-delta.flat { color:#8FA3BF; background:rgba(143,163,191,.12); }
+.kpi-delta.up   { color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); }
+.kpi-delta.down { color:var(--coral); background:color-mix(in srgb, var(--coral) 12%, transparent); }
+.kpi-delta.flat { color:var(--muted); background:color-mix(in srgb, var(--muted) 12%, transparent); }
 .kpi-foot {
   font-size:.655rem; color:var(--faint); margin-top:.34rem;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -621,8 +708,8 @@ html, body, [class*="css"], .stApp {
 
 /* ---------- Insight callout ---------- */
 .insight {
-  background:linear-gradient(135deg,rgba(61,220,151,.09),rgba(79,179,255,.05));
-  border:1px solid rgba(61,220,151,.26);
+  background:linear-gradient(135deg,color-mix(in srgb, var(--accent) 9%, transparent),color-mix(in srgb, var(--sky) 5%, transparent));
+  border:1px solid color-mix(in srgb, var(--accent) 26%, transparent);
   border-left:3px solid var(--accent);
   border-radius:11px; padding:.8rem 1rem; margin:.55rem 0 .9rem;
 }
@@ -631,11 +718,11 @@ html, body, [class*="css"], .stApp {
   text-transform:uppercase; color:var(--accent); margin-bottom:.28rem;
 }
 .insight-body { font-size:.845rem; color:var(--text); line-height:1.55; }
-.insight-body b { color:#3DDC97; font-weight:650; }
+.insight-body b { color:var(--accent); font-weight:650; }
 
 .insight.warn {
-  background:linear-gradient(135deg,rgba(245,185,75,.10),rgba(255,107,107,.05));
-  border-color:rgba(245,185,75,.30); border-left-color:var(--amber);
+  background:linear-gradient(135deg,color-mix(in srgb, var(--amber) 10%, transparent),color-mix(in srgb, var(--coral) 5%, transparent));
+  border-color:color-mix(in srgb, var(--amber) 30%, transparent); border-left-color:var(--amber);
 }
 .insight.warn .insight-title { color:var(--amber); }
 .insight.warn .insight-body b { color:var(--amber); }
@@ -648,9 +735,9 @@ html, body, [class*="css"], .stApp {
   border-radius:999px; padding:.2rem .62rem; white-space:nowrap;
 }
 .chip b { color:var(--text); font-weight:650; }
-.chip.ok    { color:#3DDC97; border-color:rgba(61,220,151,.30); background:rgba(61,220,151,.09); }
-.chip.stale { color:#F5B94B; border-color:rgba(245,185,75,.30); background:rgba(245,185,75,.09); }
-.chip.fail  { color:#FF6B6B; border-color:rgba(255,107,107,.30); background:rgba(255,107,107,.09); }
+.chip.ok    { color:var(--accent); border-color:color-mix(in srgb, var(--accent) 30%, transparent); background:color-mix(in srgb, var(--accent) 9%, transparent); }
+.chip.stale { color:var(--amber); border-color:color-mix(in srgb, var(--amber) 30%, transparent); background:color-mix(in srgb, var(--amber) 9%, transparent); }
+.chip.fail  { color:var(--coral); border-color:color-mix(in srgb, var(--coral) 30%, transparent); background:color-mix(in srgb, var(--coral) 9%, transparent); }
 
 /* ---------- Streamlit widget polish ---------- */
 .stTabs [data-baseweb="tab-list"] {
@@ -672,21 +759,63 @@ html, body, [class*="css"], .stApp {
 .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display:none !important; }
 
 div[data-testid="stSidebar"] {
-  background:#0D1626; border-right:1px solid var(--border);
+  background:var(--sidebar); border-right:1px solid var(--border);
 }
 div[data-testid="stSidebar"] .block-container { padding-top:1.2rem; }
+
+/* ---------- Streamlit surfaces ----------
+   These were previously painted by a `[theme]` block in .streamlit/config.toml.
+   That block is injected after this stylesheet, so it overrode the theme tokens
+   and made the Appearance toggle look inert. With it removed, every surface it
+   covered has to be styled here or it falls back to Streamlit's default white.
+   `!important` is used only where Streamlit sets an inline style, which no
+   selector specificity can beat. */
+html, body, .stApp, [data-testid="stAppViewContainer"],
+[data-testid="stHeader"], [data-testid="stMain"],
+[data-testid="stBottomBlockContainer"], [data-testid="stBottom"] {
+  background:var(--ink) !important;
+  color:var(--text);
+}
+[data-testid="stHeader"] { background:transparent !important; }
+[data-testid="stSidebar"] > div:first-child { background:var(--sidebar) !important; }
+[data-testid="stSidebarContent"], [data-testid="stSidebarUserContent"] {
+  background:var(--sidebar) !important;
+}
+/* Widget labels and helper text inherit Streamlit's own colour otherwise. */
+.stApp label, .stApp p, .stApp span, .stApp li, .stApp div[data-testid="stMarkdownContainer"] {
+  color:var(--text);
+}
+.stApp [data-testid="stCaptionContainer"], .stApp .stCaption,
+.stApp [data-testid="stWidgetLabel"] p { color:var(--muted); }
+/* Inputs: the field itself, not just its wrapper. */
+.stApp input, .stApp textarea, .stApp [data-baseweb="select"] > div {
+  background:var(--surface2) !important; color:var(--text) !important;
+  border-color:var(--border) !important;
+}
+.stApp input::placeholder, .stApp textarea::placeholder { color:var(--faint); }
+/* Radio and checkbox labels must stay legible in both themes. */
+.stApp [data-testid="stRadio"] label p, .stApp [data-testid="stCheckbox"] label p {
+  color:var(--text) !important;
+}
+/* Popovers and menus render in a portal outside .stApp. */
+[data-baseweb="popover"], [data-baseweb="menu"], ul[role="listbox"] {
+  background:var(--surface) !important; border:1px solid var(--border) !important;
+}
+[data-baseweb="popover"] li, ul[role="listbox"] li { color:var(--text) !important; }
+/* Code blocks and the exception box. */
+.stApp code, .stApp pre { background:var(--surface2) !important; color:var(--text) !important; }
 
 div[data-testid="stMetricValue"] {
   font-variant-numeric:tabular-nums; color:var(--text);
 }
 .stButton>button {
-  background:rgba(61,220,151,.10); color:#3DDC97;
+  background:color-mix(in srgb, var(--accent) 10%, transparent); color:var(--accent);
   border:1px solid rgba(61,220,151,.30); border-radius:9px;
   font-size:.8rem; font-weight:600; padding:.42rem 1rem;
   transition:all .16s ease;
 }
 .stButton>button:hover {
-  background:rgba(61,220,151,.18); border-color:rgba(61,220,151,.5); color:#3DDC97;
+  background:color-mix(in srgb, var(--accent) 18%, transparent); border-color:color-mix(in srgb, var(--accent) 50%, transparent); color:var(--accent);
 }
 div[data-baseweb="select"]>div, div[data-baseweb="input"]>div {
   background:var(--surface2); border-color:var(--border); border-radius:9px;
@@ -699,19 +828,19 @@ hr { border-color:var(--border); }
   background:var(--surface); border:1px solid var(--border); border-radius:11px;
 }
 .stDownloadButton>button {
-  background:rgba(79,179,255,.10); color:#4FB3FF;
+  background:color-mix(in srgb, var(--sky) 10%, transparent); color:var(--sky);
   border:1px solid rgba(79,179,255,.30); border-radius:9px;
   font-size:.78rem; font-weight:600;
 }
-.stDownloadButton>button:hover { background:rgba(79,179,255,.18); color:#4FB3FF; }
+.stDownloadButton>button:hover { background:color-mix(in srgb, var(--sky) 18%, transparent); color:var(--sky); }
 
 /* ---------- Chat ---------- */
 .chat-q {
-  background:rgba(79,179,255,.10); border:1px solid rgba(79,179,255,.24);
+  background:color-mix(in srgb, var(--sky) 10%, transparent); border:1px solid color-mix(in srgb, var(--sky) 24%, transparent);
   border-radius:11px; padding:.62rem .9rem; margin:.2rem 0 .6rem;
   font-size:.86rem; color:var(--text); line-height:1.5;
 }
-.chat-q b { color:#4FB3FF; font-weight:650; }
+.chat-q b { color:var(--sky); font-weight:650; }
 .chat-a {
   background:var(--surface); border:1px solid var(--border);
   border-left:3px solid var(--accent);
@@ -720,7 +849,7 @@ hr { border-color:var(--border); }
 }
 .chat-a.clarify { border-left-color:var(--amber); }
 .chat-a.refuse  { border-left-color:var(--faint); color:var(--muted); }
-.chat-a b { color:#3DDC97; font-weight:650; }
+.chat-a b { color:var(--accent); font-weight:650; }
 .chat-meta {
   font-size:.68rem; color:var(--faint); margin:.15rem 0 .85rem;
   display:flex; flex-wrap:wrap; gap:.4rem; align-items:center;
@@ -732,8 +861,8 @@ hr { border-color:var(--border); }
   font-variant-numeric:tabular-nums;
 }
 .cite b { color:var(--text); font-weight:650; }
-.cite.forecast { color:#4FB3FF; border-color:rgba(79,179,255,.28); background:rgba(79,179,255,.08); }
-.cite.derived  { color:#F5B94B; border-color:rgba(245,185,75,.28); background:rgba(245,185,75,.08); }
+.cite.forecast { color:var(--sky); border-color:color-mix(in srgb, var(--sky) 28%, transparent); background:color-mix(in srgb, var(--sky) 8%, transparent); }
+.cite.derived  { color:var(--amber); border-color:color-mix(in srgb, var(--amber) 28%, transparent); background:color-mix(in srgb, var(--amber) 8%, transparent); }
 .chat-empty {
   border:1px dashed var(--border); border-radius:12px;
   padding:1.4rem 1.1rem; text-align:center; color:var(--faint);
