@@ -227,9 +227,10 @@
           "period"
         ]
       ],
-      "description": "Annual growth of real gross domestic product, constant 2015 prices. Covers 1961-01 to 2025-01.",
+      "description": "Year-on-year growth in real GDP, computed from the SARB's quarterly constant-price GDP series. Quarterly and current, rather than the World Bank's annual figure which lags a year. Covers 1991-01 to 2026-04.",
       "ai_context": {
         "synonyms": [
+          "gdp growth (yoy)",
           "gdp growth",
           "economic growth",
           "GDP",
@@ -237,8 +238,8 @@
         ],
         "examples": [
           "What is the latest gdp growth?",
-          "Show gdp growth by year over the last five years",
-          "Is gdp growth improving?"
+          "Show gdp growth (yoy) by quarter over the last five years",
+          "Is gdp growth (yoy) improving?"
         ]
       },
       "fields": [
@@ -251,7 +252,7 @@
           "dimension": {
             "is_time": true
           },
-          "description": "Observation period for GDP growth.",
+          "description": "Observation period for GDP growth (YoY).",
           "ai_context": {
             "synonyms": [
               "date",
@@ -270,7 +271,7 @@
           "dimension": {
             "is_time": false
           },
-          "description": "Observed value of GDP growth, measured in %.",
+          "description": "Observed value of GDP growth (YoY), measured in %.",
           "ai_context": {
             "synonyms": [
               "reading",
@@ -309,7 +310,7 @@
             "sql": "AVG(value)"
           },
           "datatype": "Float",
-          "description": "Mean GDP growth across the selected periods.",
+          "description": "Mean GDP growth (YoY) across the selected periods.",
           "ai_context": {
             "synonyms": [
               "mean",
@@ -323,7 +324,7 @@
             "sql": "MIN(value)"
           },
           "datatype": "Float",
-          "description": "Lowest GDP growth in the selected periods."
+          "description": "Lowest GDP growth (YoY) in the selected periods."
         },
         {
           "name": "value_max",
@@ -331,7 +332,7 @@
             "sql": "MAX(value)"
           },
           "datatype": "Float",
-          "description": "Highest GDP growth in the selected periods."
+          "description": "Highest GDP growth (YoY) in the selected periods."
         },
         {
           "name": "value_standard_deviation",
@@ -339,7 +340,7 @@
             "sql": "STDDEV(value)"
           },
           "datatype": "Float",
-          "description": "Dispersion of GDP growth across the selected periods.",
+          "description": "Dispersion of GDP growth (YoY) across the selected periods.",
           "ai_context": {
             "synonyms": [
               "volatility",
@@ -359,7 +360,151 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"series_key\": \"gdp_growth\", \"label\": \"GDP growth\", \"short_label\": \"GDP growth\", \"category\": \"Growth & Output\", \"unit\": \"%\", \"frequency\": \"A\", \"provider\": \"worldbank\", \"higher_is_better\": true, \"upstream_indicator\": \"NY.GDP.MKTP.KD.ZG\", \"observations\": 65, \"first_period\": \"1961-01-01\", \"last_period\": \"2025-01-01\", \"last_value\": 1.11462608103956}"
+          "data": "{\"series_key\": \"gdp_growth\", \"label\": \"GDP growth (YoY)\", \"short_label\": \"GDP growth\", \"category\": \"Growth & Output\", \"unit\": \"%\", \"frequency\": \"Q\", \"provider\": \"derived\", \"higher_is_better\": true, \"upstream_indicator\": {}, \"observations\": 142, \"first_period\": \"1991-01-01\", \"last_period\": \"2026-04-01\", \"last_value\": 0.8548572486386741}"
+        }
+      ]
+    },
+    {
+      "name": "fct_gdp_ytd",
+      "source": "sa_insights.fct_gdp_ytd",
+      "primary_key": [
+        "period"
+      ],
+      "unique_keys": [
+        [
+          "period"
+        ]
+      ],
+      "description": "Year-to-date growth in real GDP: cumulative output so far this calendar year against the same span of last year. Complements the single-quarter YoY figure, which one strong quarter can flatter. Covers 1991-01 to 2026-04.",
+      "ai_context": {
+        "synonyms": [
+          "gdp growth (ytd)"
+        ],
+        "examples": [
+          "What is the latest gdp growth (ytd)?",
+          "Show gdp growth (ytd) by quarter over the last five years",
+          "Is gdp growth (ytd) improving?"
+        ]
+      },
+      "fields": [
+        {
+          "name": "period",
+          "expression": {
+            "sql": "period"
+          },
+          "datatype": "Date",
+          "dimension": {
+            "is_time": true
+          },
+          "description": "Observation period for GDP growth (YTD).",
+          "ai_context": {
+            "synonyms": [
+              "date",
+              "month",
+              "quarter",
+              "year"
+            ]
+          }
+        },
+        {
+          "name": "value",
+          "expression": {
+            "sql": "value"
+          },
+          "datatype": "Float",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Observed value of GDP growth (YTD), measured in %.",
+          "ai_context": {
+            "synonyms": [
+              "reading",
+              "observation",
+              "level"
+            ]
+          }
+        },
+        {
+          "name": "series_key",
+          "expression": {
+            "sql": "series_key"
+          },
+          "datatype": "String",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Stable identifier of the indicator."
+        },
+        {
+          "name": "unit",
+          "expression": {
+            "sql": "unit"
+          },
+          "datatype": "String",
+          "dimension": {
+            "is_time": false
+          },
+          "description": "Unit of measurement for the value field."
+        }
+      ],
+      "metrics": [
+        {
+          "name": "value_average",
+          "expression": {
+            "sql": "AVG(value)"
+          },
+          "datatype": "Float",
+          "description": "Mean GDP growth (YTD) across the selected periods.",
+          "ai_context": {
+            "synonyms": [
+              "mean",
+              "average"
+            ]
+          }
+        },
+        {
+          "name": "value_min",
+          "expression": {
+            "sql": "MIN(value)"
+          },
+          "datatype": "Float",
+          "description": "Lowest GDP growth (YTD) in the selected periods."
+        },
+        {
+          "name": "value_max",
+          "expression": {
+            "sql": "MAX(value)"
+          },
+          "datatype": "Float",
+          "description": "Highest GDP growth (YTD) in the selected periods."
+        },
+        {
+          "name": "value_standard_deviation",
+          "expression": {
+            "sql": "STDDEV(value)"
+          },
+          "datatype": "Float",
+          "description": "Dispersion of GDP growth (YTD) across the selected periods.",
+          "ai_context": {
+            "synonyms": [
+              "volatility",
+              "standard deviation"
+            ]
+          }
+        },
+        {
+          "name": "observation_count",
+          "expression": {
+            "sql": "COUNT(value)"
+          },
+          "datatype": "Integer",
+          "description": "Number of non-missing observations in the selection."
+        }
+      ],
+      "custom_extensions": [
+        {
+          "vendor_name": "SA_INSIGHTS",
+          "data": "{\"series_key\": \"gdp_ytd\", \"label\": \"GDP growth (YTD)\", \"short_label\": \"GDP growth (YTD)\", \"category\": \"Growth & Output\", \"unit\": \"%\", \"frequency\": \"Q\", \"provider\": \"derived\", \"higher_is_better\": true, \"upstream_indicator\": {}, \"observations\": 142, \"first_period\": \"1991-01-01\", \"last_period\": \"2026-04-01\", \"last_value\": 1.3782972902194324}"
         }
       ]
     },
@@ -5146,9 +5291,23 @@
   ],
   "relationships": [
     {
-      "name": "fct_gdp_growth_to_dim_date_year",
+      "name": "fct_gdp_growth_to_dim_date_quarter",
       "from": "fct_gdp_growth",
-      "to": "dim_date_year",
+      "to": "dim_date_quarter",
+      "from_columns": [
+        "period"
+      ],
+      "to_columns": [
+        "period"
+      ],
+      "ai_context": {
+        "instructions": "Join on period to attach calendar attributes such as year and quarter to this indicator."
+      }
+    },
+    {
+      "name": "fct_gdp_ytd_to_dim_date_quarter",
+      "from": "fct_gdp_ytd",
+      "to": "dim_date_quarter",
       "from_columns": [
         "period"
       ],
@@ -5697,7 +5856,7 @@
   "custom_extensions": [
     {
       "vendor_name": "SA_INSIGHTS",
-      "data": "{\"generated_at\": \"2026-11-16T05:55:44+00:00\", \"document_version\": \"0.2.0.dev0\", \"series_count\": 34, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
+      "data": "{\"generated_at\": \"2026-11-16T16:18:24+00:00\", \"document_version\": \"0.2.0.dev0\", \"series_count\": 35, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
     }
   ]
 }
