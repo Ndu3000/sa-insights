@@ -73,6 +73,23 @@ def _from_warehouse(only_featured: bool) -> dict | None:
     if latest.empty:
         return None
 
+    # `forecast_runs` has no last_period column, so reading it from the run row
+    # silently produced "" for every series on the published page — the site
+    # could not say how current its own data was. The indicators table records
+    # the real last observation per series, which is the authoritative answer.
+    try:
+        meta = store.indicator_metadata()
+        last_periods = {
+            str(r["series_key"]): (
+                pd.Timestamp(r["last_period"]).strftime("%Y-%m-%d")
+                if r.get("last_period") is not None
+                else ""
+            )
+            for _, r in meta.iterrows()
+        }
+    except Exception:  # noqa: BLE001 - a missing table must not blank the page
+        last_periods = {}
+
     payload_series: dict[str, dict] = {}
 
     for key, group in latest.groupby("series_key", sort=False):
@@ -124,7 +141,7 @@ def _from_warehouse(only_featured: bool) -> dict | None:
             "skill_vs_naive": (
                 None if skill is None or skill != skill else round(float(skill), 1)
             ),
-            "last_period": str(head.get("last_period") or ""),
+            "last_period": last_periods.get(str(key), ""),
             "last_value": round(float(head.get("last_value") or 0.0), 4),
             "periods": [pd.Timestamp(p).strftime("%Y-%m-%d") for p in path["period"]],
             "forecast": [round(float(v), 4) for v in path["forecast"]],

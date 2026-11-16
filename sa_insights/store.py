@@ -269,10 +269,13 @@ def indicator_metadata() -> pd.DataFrame:
 
 def latest_forecasts(series_key: str | None = None) -> pd.DataFrame:
     """The most recent forecast run per series, with its projected path joined on."""
+    # The filter belongs to the CTE, which selects FROM forecast_runs without an
+    # alias. Qualifying it as `r.series_key` there raised a BinderException —
+    # `r` only exists in the outer query.
     where = ""
     params: list = []
     if series_key:
-        where = "WHERE r.series_key = ?"
+        where = "WHERE series_key = ?"
         params = [series_key]
 
     return query_df(
