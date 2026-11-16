@@ -298,3 +298,101 @@ def test_window_is_labelled_honestly_when_data_is_shorter(agent: Agent) -> None:
     answer = agent.ask("what was unemployment like 10 years ago?", Session())
     if "since 2017" in answer.text:
         assert "not 2016" in answer.text, answer.text
+
+
+# --------------------------------------------------------------------------- #
+# Presentation — shared by the Streamlit tab and the React UI
+# --------------------------------------------------------------------------- #
+from sa_insights.chat import present  # noqa: E402
+
+
+def _cite(key: str, source: str, value: float | None, label: str | None = None, period: str = "2026-09-01"):
+    return answers.Citation(
+        series_key=key,
+        label=label or key,
+        period=period,
+        value=value,
+        source=source,
+        detail="",
+    )
+
+
+def test_group_citations_groups_by_series_and_orders_kinds() -> None:
+    cites = [
+        _cite("cpi_yoy", "forecast", 4.7),
+        _cite("repo_rate", "observation", 7.25, "Repo rate"),
+        _cite("cpi_yoy", "derived", 1.1),
+        _cite("cpi_yoy", "observation", 4.5, "CPI inflation (YoY)"),
+    ]
+    groups = present.group_citations(cites)
+    # Groups keep retrieval order: cpi_yoy appeared first.
+    assert [g.series_key for g in groups] == ["cpi_yoy", "repo_rate"]
+    # Within a series: observed, then derived, then forecast.
+    assert [i.source for i in groups[0].items] == ["observation", "derived", "forecast"]
+
+
+def test_group_label_prefers_a_human_label_over_the_key() -> None:
+    """A forecast citation carries only the key; it must not headline the group."""
+    cites = [_cite("cpi_yoy", "forecast", 4.7), _cite("cpi_yoy", "observation", 4.5, "CPI inflation (YoY)")]
+    assert present.group_citations(cites)[0].label == "CPI inflation (YoY)"
+
+
+def test_group_citations_accepts_json_dicts() -> None:
+    """The HTTP layer groups the serialised form, so dicts must work too."""
+    groups = present.group_citations(
+        [{"series_key": "k", "label": "K", "period": "2026", "value": None, "source": "observation", "detail": ""}]
+    )
+    assert groups[0].items[0].value_text == "—"
+
+
+def test_format_value() -> None:
+    assert present.format_value(4.5) == "4.5"
+    assert present.format_value(7.0) == "7"
+    assert present.format_value(12345.678) == "12,345.68"
+    assert present.format_value(None) == "—"
+
+
+def test_verification_states(cpi_evidence: answers.Evidence) -> None:
+    clean = answers.gate(
+        question="what is cpi", evidence=cpi_evidence, graph_hits=["cpi_yoy"],
+        model_answer="CPI inflation is 4.5%.",
+    )
+    assert present.verification(clean).state == "verified"
+    assert present.verification(clean).figures >= 1
+
+    rejected = answers.gate(
+        question="what is cpi", evidence=cpi_evidence, graph_hits=["cpi_yoy"],
+        model_answer="CPI is 9.9%, soaring.",
+    )
+    result = present.verification(rejected)
+    assert result.state == "rejected"
+    # It must say a draft was discarded, and must not repeat the invented figure.
+    assert "9.9" not in result.detail
+
+    refused = answers.gate(
+        question="who won the world cup", evidence=answers.Evidence(), graph_hits=[], model_answer=None
+    )
+    assert present.verification(refused).state == "unanswered"
+    assert present.verification(refused).figures == 0
+
+
+def test_html_is_escaped() -> None:
+    cites = [_cite("k", "observation", 1.0, "<script>alert(1)</script>")]
+    out = present.citations_html(present.group_citations(cites))
+    assert "<script>" not in out
+    assert "&lt;script&gt;" in out
+
+
+def test_every_suggestion_is_answerable(agent: Agent) -> None:
+    """A chip that leads to a refusal is worse than no chip."""
+    for question in present.SUGGESTIONS:
+        answer = agent.ask(question, Session())
+        assert answer.kind == "answer", f"standalone suggestion not answered: {question!r} -> {answer.kind}"
+
+
+def test_every_follow_up_suggestion_is_answerable_after_a_turn(agent: Agent) -> None:
+    for question in present.FOLLOW_UPS:
+        session = Session()
+        agent.ask("What is CPI inflation now?", session)
+        answer = agent.ask(question, session)
+        assert answer.kind == "answer", f"follow-up not answered: {question!r} -> {answer.kind}"

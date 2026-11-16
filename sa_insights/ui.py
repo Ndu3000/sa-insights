@@ -869,6 +869,46 @@ hr { border-color:var(--border); }
   font-size:.82rem; line-height:1.6;
 }
 .chat-empty b { color:var(--muted); font-weight:600; }
+
+/* Evidence, grouped by series: one row per series, then what kind of evidence. */
+.cite-block { margin:.15rem 0 .5rem; display:flex; flex-direction:column; gap:.4rem; }
+.cite-group { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; }
+.cite-label {
+  font-size:.72rem; font-weight:650; color:var(--text);
+  margin-right:.15rem; min-width:7.5rem;
+}
+.cite i {
+  font-style:normal; font-size:.6rem; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--faint); margin-right:.18rem;
+}
+.cite.forecast i { color:var(--sky); }
+.cite.derived i  { color:var(--amber); }
+
+/* What the verification gate did, in words, beneath the evidence. */
+.verify {
+  font-size:.7rem; color:var(--muted); margin:0 0 .85rem;
+  padding:.3rem .6rem; border-radius:8px;
+  border:1px solid var(--border); background:color-mix(in srgb, var(--faint) 6%, transparent);
+}
+.verify b { font-weight:700; margin-right:.2rem; }
+.verify.verified   { border-color:color-mix(in srgb, var(--accent) 30%, transparent); }
+.verify.verified b { color:var(--accent); }
+.verify.rejected   { border-color:color-mix(in srgb, var(--amber) 34%, transparent); background:color-mix(in srgb, var(--amber) 7%, transparent); }
+.verify.rejected b { color:var(--amber); }
+.verify.needs_input b { color:var(--amber); }
+.verify.unanswered b  { color:var(--faint); }
+
+/* Suggestion chips. Scoped by container key so ordinary buttons keep their style. */
+[class*="st-key-chat-chips"] .stButton>button {
+  background:color-mix(in srgb, var(--sky) 8%, transparent); color:var(--text);
+  border:1px solid color-mix(in srgb, var(--sky) 26%, transparent);
+  border-radius:999px; font-size:.76rem; font-weight:550;
+  padding:.34rem .85rem; white-space:normal; line-height:1.35;
+}
+[class*="st-key-chat-chips"] .stButton>button:hover {
+  background:color-mix(in srgb, var(--sky) 16%, transparent);
+  border-color:color-mix(in srgb, var(--sky) 50%, transparent); color:var(--text);
+}
 </style>
 """
 

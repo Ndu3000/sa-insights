@@ -16,6 +16,7 @@ import streamlit as st
 warnings.filterwarnings("ignore")
 
 from sa_insights import chronos_fm, downloads, refresh, store, tracking, ui
+from sa_insights.chat import present
 from sa_insights.catalog import (
     BY_KEY,
     CATEGORIES,
@@ -1354,26 +1355,17 @@ def _chat_session():
 
 
 def _render_citations(citations: list) -> None:
-    """Render the evidence behind an answer.
+    """Render the evidence behind an answer, grouped by series.
 
     Citations are the reason to trust any of this, so they are shown inline by
     default rather than hidden behind an expander — a reader who has to click to
-    check has not really been given a source.
+    check has not really been given a source. Grouping by series, with each kind
+    of evidence labelled, is what lets a reader tell a published observation from
+    a derived change or a model forecast at a glance.
     """
-    if not citations:
-        return
-    order = {"observation": 0, "derived": 1, "forecast": 2}
-    shown = sorted(citations, key=lambda c: order.get(c.source, 3))[:8]
-    parts = []
-    for cite in shown:
-        value = "—" if cite.value is None else f"{cite.value:,.2f}".rstrip("0").rstrip(".")
-        label = cite.label or cite.series_key
-        cls = cite.source if cite.source in {"forecast", "derived"} else ""
-        hint = f" · {cite.detail}" if cite.detail else ""
-        parts.append(
-            f'<span class="cite {cls}"><b>{value}</b> · {label} · {cite.period}{hint}</span>'
-        )
-    st.markdown(f'<div class="chat-meta">{"".join(parts)}</div>', unsafe_allow_html=True)
+    html = present.citations_html(present.group_citations(citations))
+    if html:
+        st.markdown(html, unsafe_allow_html=True)
 
 
 def _render_exchange(question: str, answer) -> None:
@@ -1396,20 +1388,68 @@ def _render_exchange(question: str, answer) -> None:
             unsafe_allow_html=True,
         )
 
-    # Surface the verification result rather than leaving it invisible. If a
-    # draft was rejected for containing an unverifiable figure, the user should
-    # know that is what happened — hiding it looks like the bot simply failed.
-    if answer.unverified_numbers:
-        st.markdown(
-            ui.insight(
-                "Draft rejected",
-                "Some figures in the generated answer did not match any value in "
-                "the warehouse, so the narrative was discarded. The verified "
-                "numbers are in the citations above.",
-                warn=True,
-            ),
-            unsafe_allow_html=True,
+    # Say what the verification gate did, in every case — not only when it
+    # rejected something. A reader who is told "Verified" can rely on it, and one
+    # who is told a draft was rejected knows why the wording is plain, instead of
+    # assuming the bot simply failed.
+    st.markdown(
+        present.verification_html(present.verification(answer)),
+        unsafe_allow_html=True,
+    )
+
+
+def _queue_question(question: str) -> None:
+    """Button callback: ask this question on the next run.
+
+    A callback rather than an inline ``if st.button`` so the click is recorded
+    before the script reruns. Handling it inline would render the chips once more
+    on the same pass and, worse, let a double-click ask the question twice.
+    """
+    st.session_state["chat_pending"] = question
+
+
+def _render_suggestions(has_history: bool) -> None:
+    """Clickable chips that ask the question, rather than text describing one."""
+    options = present.suggestions(has_history)
+    heading = "Ask a follow-up" if has_history else "Try one of these"
+    st.markdown(f'<div class="chat-meta">{heading}</div>', unsafe_allow_html=True)
+    chips = st.container(key="chat-chips")
+    with chips:
+        columns = st.columns(len(options))
+        for index, (column, option) in enumerate(zip(columns, options)):
+            with column:
+                st.button(
+                    option,
+                    key=f"chat_chip_{int(has_history)}_{index}",
+                    on_click=_queue_question,
+                    args=(option,),
+                    use_container_width=True,
+                )
+
+
+def _ask_and_track(agent, session, question: str) -> bool:
+    """Ask, record the turn, and report whether the page should rerun."""
+    with st.spinner("Checking the data…"):
+        try:
+            started = time.perf_counter()
+            answer = agent.ask(question, session)
+            elapsed_ms = (time.perf_counter() - started) * 1000
+        except Exception as exc:  # noqa: BLE001 - a bad question must not break the page
+            st.error(f"Could not answer that: {exc}")
+            return False
+        # Same tracking as the HTTP API, so a question asked in the dashboard
+        # is as diagnosable as one asked over curl. Best-effort: log_chat_turn
+        # swallows its own failures and tracking is gated on a URI.
+        from sa_insights.chat import llm as _llm
+
+        tracking.log_chat_turn(
+            question=question,
+            answer=answer,
+            latency_ms=elapsed_ms,
+            phrasing=_llm.DEFAULT_MODEL if _llm.available() else "deterministic",
+            session_id=_session_owner(),
         )
+    return True
 
 
 def view_chat(summary: dict):
@@ -1436,44 +1476,22 @@ def view_chat(summary: dict):
     session = _chat_session()
     agent = _chat_agent()
 
-    # Suggestions are real, working questions rather than decorative prompt
-    # chips — each one is exercised in the test suite.
-    if not session.turns:
-        st.markdown(
-            '<div class="chat-empty"><b>Try one of these</b><br>'
-            "What is CPI inflation now? · How has the repo rate changed since 2020? "
-            "· Is inflation getting better? · What about the rand?</div>",
-            unsafe_allow_html=True,
-        )
-
     for turn in session.turns:
         _render_exchange(turn.question, turn.answer)
 
-    question = st.chat_input("Ask about the South African economy…")
-    if question:
-        with st.spinner("Checking the data…"):
-            try:
-                started = time.perf_counter()
-                answer = agent.ask(question, session)
-                elapsed_ms = (time.perf_counter() - started) * 1000
-            except Exception as exc:  # noqa: BLE001 - a bad question must not break the page
-                st.error(f"Could not answer that: {exc}")
-                return
-            # Same tracking as the HTTP API, so a question asked in the dashboard
-            # is as diagnosable as one asked over curl. Best-effort: log_chat_turn
-            # swallows its own failures and tracking is gated on a URI.
-            from sa_insights.chat import llm as _llm
+    # Suggestions are real, working questions rather than decorative prompt
+    # chips — each one is exercised in the test suite. Before the first turn they
+    # are standalone questions; afterwards they are follow-ups that lean on the
+    # conversation, which is the behaviour the follow-up resolver exists for.
+    _render_suggestions(has_history=bool(session.turns))
 
-            tracking.log_chat_turn(
-                question=question,
-                answer=answer,
-                latency_ms=elapsed_ms,
-                phrasing=_llm.DEFAULT_MODEL if _llm.available() else "deterministic",
-                session_id=_session_owner(),
-            )
-        # Rerun so the new exchange renders above the input box, keeping the
-        # conversation in reading order with the newest at the bottom.
-        st.rerun()
+    typed = st.chat_input("Ask about the South African economy…")
+    question = typed or st.session_state.pop("chat_pending", None)
+    if question:
+        if _ask_and_track(agent, session, question):
+            # Rerun so the new exchange renders above the input box, keeping the
+            # conversation in reading order with the newest at the bottom.
+            st.rerun()
 
     if session.turns:
         left, right = st.columns([1, 5])

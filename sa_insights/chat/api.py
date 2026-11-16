@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 
 from .. import tracking
 from .agent import Agent, Session
-from . import llm, tools
+from . import llm, present, tools
 
 
 def _make_agent() -> Agent:
@@ -67,6 +67,28 @@ class CitationModel(BaseModel):
     detail: str = ""
 
 
+class CitationItemModel(BaseModel):
+    source: str
+    source_label: str
+    period: str
+    value: float | None = None
+    value_text: str
+    detail: str = ""
+
+
+class CitationGroupModel(BaseModel):
+    series_key: str
+    label: str
+    items: list[CitationItemModel]
+
+
+class VerificationModel(BaseModel):
+    state: str
+    headline: str
+    detail: str
+    figures: int
+
+
 class AskResponse(BaseModel):
     kind: str
     text: str
@@ -75,6 +97,11 @@ class AskResponse(BaseModel):
     citations: list[CitationModel] = []
     unverified_numbers: list[float] = []
     evidence_series: list[str] = []
+    # Added for front ends: the same grouping and verification wording the
+    # Streamlit tab shows, computed once in `present` so they cannot drift. Both
+    # are additive, so existing clients that ignore them keep working.
+    citation_groups: list[CitationGroupModel] = []
+    verification: VerificationModel | None = None
 
 
 app = FastAPI(
@@ -143,6 +170,16 @@ def series(category: str | None = None) -> dict[str, Any]:
     }
 
 
+@app.get("/suggestions")
+def suggestions(has_history: bool = False) -> dict[str, list[str]]:
+    """Questions worth offering as one-click chips.
+
+    Served by the backend rather than hardcoded in each front end so the chips
+    stay in step with the test suite that proves every one of them is answerable.
+    """
+    return {"suggestions": present.suggestions(has_history)}
+
+
 @app.post("/ask", response_model=AskResponse)
 def ask(request: AskRequest) -> AskResponse:
     """Answer a question, or explain what is missing.
@@ -169,7 +206,13 @@ def ask(request: AskRequest) -> AskResponse:
         daemon=True,
     ).start()
 
-    return AskResponse(**answer.as_dict())
+    payload = answer.as_dict()
+    payload["citation_groups"] = [
+        present.group_to_dict(group)
+        for group in present.group_citations(payload["citations"])
+    ]
+    payload["verification"] = present.verification_to_dict(present.verification(answer))
+    return AskResponse(**payload)
 
 
 @app.post("/reset")
