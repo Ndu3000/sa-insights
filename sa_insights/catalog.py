@@ -214,18 +214,19 @@ SERIES: list[SeriesSpec] = [
         "Growth & Output",
         "Composite leading business cycle indicator, designed to anticipate turning points.",
     ),
-    SeriesSpec(
-        key="real_gdp_q",
-        label="Real GDP (quarterly)",
-        unit="R million",
-        frequency="Q",
-        category="Growth & Output",
-        description="Quarterly real GDP at constant prices, seasonally adjusted.",
-        provider="fred",
-        fetch={"series_id": "NGDPRSAXDCZAQ"},
+    _sarb(
+        "real_gdp_q",
+        "Real GDP (quarterly)",
+        "NRI6006D",
+        "R million",
+        "Growth & Output",
+        "Quarterly GDP at constant prices, seasonally adjusted, as published "
+        "by the SARB. Preferred over the FRED mirror, which lags a quarter "
+        "behind the primary publisher.",
+        freq="Q",
         decimals=0,
         higher_is_better=True,
-        optional=True,
+        start="1990-01-01",
     ),
     # ---------------------------------------------------------------- prices
     _sarb(
@@ -273,23 +274,30 @@ SERIES: list[SeriesSpec] = [
         higher_is_better=False,
     ),
     # ---------------------------------------------------------------- labour
-    _wb(
+    _sarb(
         "unemployment",
         "Unemployment rate",
-        "SL.UEM.TOTL.ZS",
+        "LABT079A",
         "%",
         "Labour",
-        "Unemployed as a share of the total labour force (ILO modelled estimate).",
+        "Official unemployment rate from the Quarterly Labour Force Survey, "
+        "republished by the SARB. Quarterly and current, rather than the "
+        "World Bank's annual ILO modelled estimate which lags by a year.",
+        freq="Q",
         higher_is_better=False,
+        start="1994-01-01",
     ),
-    _wb(
+    _sarb(
         "lf_participation",
         "Labour force participation",
-        "SL.TLF.CACT.ZS",
+        "LABT081A",
         "%",
         "Labour",
-        "Labour force as a share of the population aged 15 and older.",
+        "Labour force as a share of the population aged 15 and older, from "
+        "the Quarterly Labour Force Survey.",
+        freq="Q",
         higher_is_better=True,
+        start="2008-01-01",
     ),
     # ---------------------------------------------------------- money & rates
     _sarb(
