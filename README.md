@@ -68,13 +68,12 @@ See [DEPLOYMENT.md](DEPLOYMENT.md#chatbot) for the design and what was learned.
 
 | Provider | Used for | Licence |
 |----------|----------|---------|
-| **SARB** — official Web API | Policy/prime rates, bond yields, USD/ZAR, real effective FX, CPI, PPI, retail and manufacturing volumes, mining output, vehicle sales, leading indicator | Public |
-| **Stats SA** (via SARB) | Consumer and producer inflation originate here | Public |
-| **IMF DataMapper** | GDP growth, inflation, unemployment, fiscal balance, debt, current account, GDP per capita, population — with projections to 2031 | IMF terms |
-| **World Bank** Open Data | Annual macro, labour, fiscal and social aggregates | CC BY 4.0 |
-| **FRED** | Quarterly real GDP | Public |
+| **SARB** — official Web API | Rates, USD/ZAR, real effective FX, CPI level and inflation, PPI, retail/manufacturing/mining volumes, vehicle sales, leading indicator, **quarterly GDP**, **quarterly labour force survey**, **trade**, **JSE all-share** | Public |
+| **Stats SA** (via SARB) | Inflation and the Quarterly Labour Force Survey originate here | Public |
+| **IMF DataMapper** | Forward projections to 2031: growth, inflation, unemployment, fiscal balance, debt, current account, GDP per capita, population | IMF terms |
+| **World Bank** Open Data | Annual structural aggregates where no monthly/quarterly equivalent exists | CC BY 4.0 |
 
-34 indicators, roughly 8,250 observations, spanning 1946 to 2031.
+34 indicators, roughly 7,800 observations.
 
 ### On recency
 
@@ -85,20 +84,40 @@ different things for different indicators:
 |-----------|--------|-----|
 | Repo, prime, USD/ZAR, bond yield | Nov 2026 | days |
 | Vehicle sales | Oct 2026 | ~1 month |
-| CPI / PPI inflation | Sep 2026 | ~2 months |
-| Retail, manufacturing, mining, leading | Aug 2026 | ~3 months |
-| Real GDP (quarterly) | Q1 2026 | ~10 months |
-| GDP growth, unemployment, population | 2026 estimate + projections | — |
+| CPI level & inflation, PPI, trade, JSE all-share | Sep 2026 | ~2 months |
+| Retail, manufacturing, mining, leading, real effective FX | Aug 2026 | ~3 months |
+| Unemployment, labour force participation | Q3 2026 | ~1 quarter |
+| Real GDP (quarterly) | Q2 2026 | ~2 quarters |
+| Government debt, internet users | 2024 | annual, ~2 years |
+| GDP growth, GDP per capita, population, current account | 2025 | annual, ~1 year |
+| IMF projections | to 2031 | forward-looking |
 
-An earlier version read rates and inflation from the DBnomics IMF mirror, which
-had frozen at early 2025 — a lag of over 600 days, while still returning
-valid-looking data. Those series now use the SARB Web API and are current to
-within days. `scripts/check_freshness.py` fails the build if a critical
-indicator goes stale again.
+**Every monthly and quarterly series now comes from SARB**, the primary
+publisher, and sits within its normal publication lag.
 
-Stats SA publishes the underlying CPI and PPI but exposes no queryable API, and
+Two rounds of source migration got it there. The DBnomics IMF mirror had frozen
+— first rates and inflation, later the CPI level, trade and the equity index —
+while still returning valid-looking data over 600 days old. Those were replaced
+with SARB codes found in its own catalogue (`EconFinDataForSA`,
+`ReleaseOfSelectedData`) rather than guessed. Unemployment and participation
+moved from the World Bank's annual ILO modelled estimates to the official
+**Quarterly Labour Force Survey**, and quarterly GDP moved from FRED to SARB,
+which publishes a quarter earlier.
+
+The remaining annual series are genuinely annual at source: the World Bank's
+latest vintage for South African government debt is 2024. They are labelled as
+such rather than presented as current.
+
+`scripts/check_freshness.py` fails the build if a critical indicator goes stale
+again.
+
+Stats SA publishes the underlying CPI and QLFS but exposes no queryable API, and
 its SDMX endpoints return a bot-wall. Rather than scrape, the dashboard reads the
 same figures from SARB, which republishes within days of release.
+
+**Units note:** trade is in **rand millions**, not US dollars, because that is
+what SARB publishes. A dollar-denominated series moves with the exchange rate
+alone, which obscures the underlying trade volumes.
 
 ---
 
