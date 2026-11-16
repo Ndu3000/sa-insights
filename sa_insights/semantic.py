@@ -352,7 +352,8 @@ def _model_metrics(present: set[str], grains: dict[str, str]) -> list[dict]:
                 "expression": {"sql": "AVG(fct_exports_usd.value) - AVG(fct_imports_usd.value)"},
                 "datatype": "Float",
                 "description": (
-                    "Goods exports less goods imports, in millions of US dollars."
+                    "Total exports less total imports, in millions of rand, "
+                    "current prices. Positive means a trade surplus."
                 ),
                 "ai_context": {
                     "synonyms": ["net exports", "trade surplus", "trade deficit"],

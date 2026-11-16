@@ -252,14 +252,16 @@ SERIES: list[SeriesSpec] = [
         higher_is_better=False,
         start="2000-01-01",
     ),
-    _ifs(
+    _sarb(
         "cpi_index",
         "CPI (all items)",
-        "PCPI_IX",
+        "CPI1000A",
         "index",
         "Prices",
-        "Consumer price index level, all items. Base varies by year.",
+        "Consumer price index level, all items, as published by the SARB "
+        "(2021=100 base). Current to within two months of release.",
         decimals=2,
+        start="2000-01-01",
     ),
     _wb(
         "inflation_annual",
@@ -344,24 +346,29 @@ SERIES: list[SeriesSpec] = [
         decimals=1,
         start="2000-01-01",
     ),
-    _ifs(
+    _sarb(
         "exports_usd",
-        "Exports (goods)",
-        "TXG_FOB_USD",
-        "US$ m",
+        "Total exports",
+        "CURX600A",
+        "R m",
         "External Sector",
-        "Monthly value of merchandise exports, free on board.",
+        "Monthly value of total exports in rand millions, current prices, "
+        "as published by the SARB. Rand rather than dollars so the series "
+        "does not move with the exchange rate alone.",
         decimals=0,
         higher_is_better=True,
+        start="2012-01-01",
     ),
-    _ifs(
+    _sarb(
         "imports_usd",
-        "Imports (goods)",
-        "TMG_FOB_USD",
-        "US$ m",
+        "Total imports",
+        "CURM600A",
+        "R m",
         "External Sector",
-        "Monthly value of merchandise imports, free on board.",
+        "Monthly value of total imports in rand millions, current prices, "
+        "as published by the SARB.",
         decimals=0,
+        start="2012-01-01",
     ),
     _wb(
         "current_account",
