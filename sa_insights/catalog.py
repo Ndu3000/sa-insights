@@ -387,15 +387,17 @@ SERIES: list[SeriesSpec] = [
         "Current account balance as a share of GDP.",
     ),
     # ------------------------------------------------------------- markets
-    _ifs(
+    _sarb(
         "equity_index",
-        "Equity price index",
-        "FPE_IX",
+        "JSE all-share index",
+        "JLE2001M",
         "index",
         "Markets",
-        "Share price index for the Johannesburg stock exchange.",
+        "FTSE/JSE Africa all-share benchmark, as published by the SARB. "
+        "Replaces the frozen IMF mirror, which stopped updating in early 2025.",
         decimals=1,
         higher_is_better=True,
+        start="2007-01-01",
     ),
     # ---------------------------------------------------------- government
     _wb(
