@@ -1003,7 +1003,7 @@ datasets:
   unique_keys:
   - - period
   description: Consumer price index level, all items, as published by the SARB (2021=100 base). Current
-    to within two months of release. Covers 2000-01 to 2026-09.
+    to within two months of release. Covers 1957-01 to 2025-01.
   ai_context:
     synonyms:
     - cpi (all items)
@@ -1089,8 +1089,8 @@ datasets:
   - vendor_name: SA_INSIGHTS
     data: '{"series_key": "cpi_index", "label": "CPI (all items)", "short_label": "CPI", "category": "Prices",
       "unit": "index", "frequency": "M", "provider": "sarb", "higher_is_better": null, "upstream_indicator":
-      {}, "observations": 321, "first_period": "2000-01-01", "last_period": "2026-09-01", "last_value":
-      108.1}'
+      {}, "observations": 817, "first_period": "1957-01-01", "last_period": "2025-01-01", "last_value":
+      205.407737238383}'
 - name: fct_inflation_annual
   source: sa_insights.fct_inflation_annual
   primary_key:
@@ -1870,8 +1870,8 @@ datasets:
   unique_keys:
   - - period
   description: Monthly value of total exports in rand millions, current prices, as published by the SARB.
-    Rand rather than dollars so the series does not move with the exchange rate alone. Covers 2012-02
-    to 2026-09.
+    Rand rather than dollars so the series does not move with the exchange rate alone. Covers 2006-01
+    to 2025-03.
   ai_context:
     synonyms:
     - total exports
@@ -1958,8 +1958,8 @@ datasets:
   - vendor_name: SA_INSIGHTS
     data: '{"series_key": "exports_usd", "label": "Total exports", "short_label": "Exports", "category":
       "External Sector", "unit": "R m", "frequency": "M", "provider": "sarb", "higher_is_better": true,
-      "upstream_indicator": {}, "observations": 176, "first_period": "2012-02-01", "last_period": "2026-09-01",
-      "last_value": 190591.0}'
+      "upstream_indicator": {}, "observations": 231, "first_period": "2006-01-01", "last_period": "2025-03-01",
+      "last_value": 9378.0}'
 - name: fct_imports_usd
   source: sa_insights.fct_imports_usd
   primary_key:
@@ -1967,7 +1967,7 @@ datasets:
   unique_keys:
   - - period
   description: Monthly value of total imports in rand millions, current prices, as published by the SARB.
-    Covers 2012-02 to 2026-09.
+    Covers 2006-01 to 2025-03.
   ai_context:
     synonyms:
     - total imports
@@ -2053,8 +2053,8 @@ datasets:
   - vendor_name: SA_INSIGHTS
     data: '{"series_key": "imports_usd", "label": "Total imports", "short_label": "Imports", "category":
       "External Sector", "unit": "R m", "frequency": "M", "provider": "sarb", "higher_is_better": null,
-      "upstream_indicator": {}, "observations": 176, "first_period": "2012-02-01", "last_period": "2026-09-01",
-      "last_value": 170795.0}'
+      "upstream_indicator": {}, "observations": 231, "first_period": "2006-01-01", "last_period": "2025-03-01",
+      "last_value": 8081.0}'
 - name: fct_current_account
   source: sa_insights.fct_current_account
   primary_key:
@@ -3640,7 +3640,7 @@ metrics:
     as each fact's observation_count metric.
 custom_extensions:
 - vendor_name: SA_INSIGHTS
-  data: '{"generated_at": "2026-11-16T05:19:57+00:00", "document_version": "0.2.0.dev0", "series_count":
+  data: '{"generated_at": "2026-11-16T05:19:14+00:00", "document_version": "0.2.0.dev0", "series_count":
     33, "generator": "scripts/build_semantic_model.py", "note": "0.1.1 is the released shape (semantic_model
     array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema
     is unstable."}'
