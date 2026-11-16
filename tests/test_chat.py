@@ -68,6 +68,31 @@ def test_year_ranges_are_not_read_as_numbers(cpi_evidence: answers.Evidence) -> 
     assert answers.verify_numbers(text, cpi_evidence) == []
 
 
+def test_durations_are_not_read_as_numbers(cpi_evidence: answers.Evidence) -> None:
+    """A regression guard for a false positive that discarded correct prose.
+
+    "Over the past 12 months" made the gate reject a valid YTD GDP answer,
+    because 12 was not among the tool values. A count of time units is prose
+    scaffolding, not a measurement.
+    """
+    text = "Over the past 12 months, CPI inflation reached 4.5%."
+    assert answers.verify_numbers(text, cpi_evidence) == []
+
+
+def test_percentage_points_are_still_verified(cpi_evidence: answers.Evidence) -> None:
+    """The duration exemption must not swallow real measurement units.
+
+    "percentage points" contains the word "points", so a careless duration
+    pattern would mask genuine figures and quietly disable the guarantee.
+    Values are chosen to be absent from the fixture: 3.4/4.5/1.1 are all real
+    CPI figures, so asserting on those would pass for the wrong reason.
+    """
+    assert answers.verify_numbers("CPI rose 7.77 percentage points.", cpi_evidence) == [7.77]
+    assert answers.verify_numbers("It grew 8.88 pp.", cpi_evidence) == [8.88]
+    # Scaffolding that happens to use the word "points" is still exempt.
+    assert answers.verify_numbers("Across 3 data points, CPI was 4.5%.", cpi_evidence) == []
+
+
 # --------------------------------------------------------------------------- #
 # Gate
 # --------------------------------------------------------------------------- #

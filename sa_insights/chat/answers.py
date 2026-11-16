@@ -46,6 +46,23 @@ _NUMBER = re.compile(r"(?<![\w.])-?\d[\d,]*(?:\.\d+)?")
 _ISO_DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 # "2020 to 2026" is a range of years, not two measurements.
 _YEAR_PAIR = re.compile(r"\b\d{4}\s*(?:-|–|to|and)\s*\d{4}\b")
+# A count of time units, or an ordinal position, is scaffolding rather than a
+# measurement: "the past 12 months", "a 4-quarter horizon", "the first 2
+# quarters". Masked before scanning so the gate does not reject correct prose
+# for containing a number no tool happened to return.
+_DURATION = re.compile(
+    r"\b\d+\s*(?:-|\s)?\s*"
+    r"(?:month|months|quarter|quarters|year|years|week|weeks|day|days|"
+    r"period|periods|series|indicator|indicators)\b",
+    re.IGNORECASE,
+)
+# "points" alone is ambiguous: "3 data points" is scaffolding, but "1.1
+# percentage points" is a measurement. Only exempt it when NOT preceded by
+# "percentage"/"basis", so the guarantee cannot be disabled by a unit name.
+_BARE_POINTS = re.compile(
+    r"(?<!percentage )(?<!basis )\b\d+\s+(?:data\s+)?points\b",
+    re.IGNORECASE,
+)
 
 AnswerKind = Literal["answer", "clarify", "refuse"]
 
@@ -202,6 +219,11 @@ def _parse(text: str) -> list[float]:
     # measurements, and their components otherwise read as invented figures.
     cleaned = _ISO_DATE.sub(" ", text)
     cleaned = _YEAR_PAIR.sub(" ", cleaned)
+    # Durations and counts are prose scaffolding, not measurements. "Over the
+    # past 12 months" made the gate reject a correct YTD answer because 12 was
+    # not among the tool values — a false positive that discarded good prose.
+    cleaned = _DURATION.sub(" ", cleaned)
+    cleaned = _BARE_POINTS.sub(" ", cleaned)
 
     found: list[float] = []
     for match in _NUMBER.finditer(cleaned):
