@@ -396,12 +396,84 @@ def _fetch_sarb(spec: SeriesSpec) -> pd.Series:
     return series
 
 
+def _fetch_derived(spec: SeriesSpec) -> pd.Series:
+    """Compute a series from another one already in the catalogue.
+
+    Why this exists
+    ---------------
+    SARB publishes quarterly GDP as a *level* (NRI6006D) but not as a growth
+    rate, while the World Bank's annual growth series lags by a year. Deriving
+    year-on-year growth from the official quarterly level gives a current,
+    authoritative figure instead of a stale one — and the arithmetic is a
+    standard transformation, not an estimate.
+
+    The source series is fetched through the normal path, so it is cached and
+    retried like any other, and the derived series inherits its freshness.
+    """
+    from .catalog import BY_KEY
+
+    source_key = spec.fetch.get("source")
+    transform = spec.fetch.get("transform")
+    periods = int(spec.fetch.get("periods", 4))
+
+    source = BY_KEY.get(source_key)
+    if source is None:
+        raise FetchError(f"derived {spec.key}: unknown source '{source_key}'")
+
+    base = _FETCHERS[source.provider](source)
+    if base is None or base.empty:
+        raise FetchError(f"derived {spec.key}: source '{source_key}' returned nothing")
+
+    base = base[~base.index.duplicated(keep="last")].sort_index()
+
+    if transform == "pct_change":
+        out = base.pct_change(periods) * 100.0
+    elif transform == "diff":
+        out = base.diff(periods)
+    elif transform == "ytd_pct_change":
+        # Year-to-date growth: cumulative output so far this calendar year
+        # against the same span of the previous year.
+        #
+        # Distinct from both YoY (one quarter against the same quarter) and QoQ
+        # (one quarter against the last). A single strong quarter can make YoY
+        # look healthy while the year as a whole is flat, so "how is the economy
+        # doing this year" needs the cumulative comparison.
+        #
+        # Summing quarterly constant-price levels is valid: they are
+        # seasonally adjusted volumes in the same base year, so the sum is the
+        # year's output rather than a meaningless average of rates.
+        years = base.index.year
+        cum = base.groupby(years).cumsum()
+        counts = base.groupby(years).cumcount() + 1
+
+        prior_year_cum: list[float] = []
+        for stamp, n in zip(base.index, counts):
+            same_span = base[(base.index.year == stamp.year - 1)]
+            prior_year_cum.append(
+                float(same_span.iloc[:n].sum()) if len(same_span) >= n else float("nan")
+            )
+
+        prior = pd.Series(prior_year_cum, index=base.index)
+        # A partial prior year would compare unequal spans and overstate growth,
+        # so those periods stay NaN and are dropped below.
+        out = (cum / prior - 1.0) * 100.0
+    else:
+        raise FetchError(f"derived {spec.key}: unsupported transform '{transform}'")
+
+    out = out.dropna()
+    if out.empty:
+        raise FetchError(f"derived {spec.key}: transform produced no observations")
+    out.name = None
+    return out
+
+
 _FETCHERS = {
     "dbnomics": _fetch_dbnomics,
     "worldbank": _fetch_worldbank,
     "fred": _fetch_fred,
     "sarb": _fetch_sarb,
     "imf": _fetch_imf_datamapper,
+    "derived": _fetch_derived,
 }
 
 

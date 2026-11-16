@@ -154,13 +154,36 @@ def _weo(key, label, subject, unit_code, unit, category, description, **kw):
 
 SERIES: list[SeriesSpec] = [
     # ---------------------------------------------------------------- growth
-    _wb(
-        "gdp_growth",
-        "GDP growth",
-        "NY.GDP.MKTP.KD.ZG",
-        "%",
-        "Growth & Output",
-        "Annual growth of real gross domestic product, constant 2015 prices.",
+    SeriesSpec(
+        key="gdp_growth",
+        label="GDP growth (YoY)",
+        unit="%",
+        frequency="Q",
+        category="Growth & Output",
+        description=(
+            "Year-on-year growth in real GDP, computed from the SARB's "
+            "quarterly constant-price GDP series. Quarterly and current, "
+            "rather than the World Bank's annual figure which lags a year."
+        ),
+        provider="derived",
+        fetch={"source": "real_gdp_q", "transform": "pct_change", "periods": 4},
+        decimals=2,
+        higher_is_better=True,
+    ),
+    SeriesSpec(
+        key="gdp_ytd",
+        label="GDP growth (YTD)",
+        unit="%",
+        frequency="Q",
+        category="Growth & Output",
+        description=(
+            "Year-to-date growth in real GDP: cumulative output so far this "
+            "calendar year against the same span of last year. Complements the "
+            "single-quarter YoY figure, which one strong quarter can flatter."
+        ),
+        provider="derived",
+        fetch={"source": "real_gdp_q", "transform": "ytd_pct_change"},
+        decimals=2,
         higher_is_better=True,
     ),
     _wb(
