@@ -2257,7 +2257,7 @@ semantic_model:
     unique_keys:
     - - period
     description: FTSE/JSE Africa all-share benchmark, as published by the SARB. Replaces the frozen IMF
-      mirror, which stopped updating in early 2025. Covers 1960-01 to 2025-03.
+      mirror, which stopped updating in early 2025. Covers 2007-03 to 2026-09.
     ai_context:
       synonyms:
       - jse all-share index
@@ -2347,8 +2347,8 @@ semantic_model:
     - vendor_name: SA_INSIGHTS
       data: '{"series_key": "equity_index", "label": "JSE all-share index", "short_label": "JSE index",
         "category": "Markets", "unit": "index", "frequency": "M", "provider": "sarb", "higher_is_better":
-        true, "upstream_indicator": {}, "observations": 783, "first_period": "1960-01-01", "last_period":
-        "2025-03-01", "last_value": 267.79064694541}'
+        true, "upstream_indicator": {}, "observations": 235, "first_period": "2007-03-01", "last_period":
+        "2026-09-01", "last_value": 196.8675}'
   - name: fct_govt_debt
     source: sa_insights.fct_govt_debt
     primary_key:
@@ -3749,7 +3749,7 @@ semantic_model:
       as each fact's observation_count metric.
   custom_extensions:
   - vendor_name: SA_INSIGHTS
-    data: '{"generated_at": "2026-11-16T05:41:25+00:00", "document_version": "0.1.1", "series_count":
+    data: '{"generated_at": "2026-11-16T05:41:34+00:00", "document_version": "0.1.1", "series_count":
       34, "generator": "scripts/build_semantic_model.py", "note": "0.1.1 is the released shape (semantic_model
       array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema
       is unstable."}'
