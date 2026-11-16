@@ -218,6 +218,21 @@ curl -X POST https://ndu3000--sa-insights-chat-api.us-east.modal.run/ask \
   -d '{"question":"What is CPI inflation now?","session_id":"demo"}'
 ```
 
+### Which front end is supported
+
+| Interface | Status |
+|-----------|--------|
+| **Ask** tab in the Streamlit dashboard | **Supported and deployed** |
+| `POST /ask` HTTP API | **Supported and deployed** |
+| `chat-ui/` React client | **Experimental — not deployed** |
+
+The React client is a spike, kept because the evidence-rendering components are
+useful reference, not because it is a second product. It typechecks and builds,
+but a suggestion chip does not submit (cause unidentified), and it is **outside
+the deploy gate** — `scripts/deploy.py` evaluates the Python path only. Its
+`node_modules` and build output are gitignored and dockerignored so the Node
+toolchain never reaches the Python image. See `chat-ui/README.md`.
+
 ### The one design decision that matters
 
 **Numbers come from tools, never from retrieval.** The language model is an

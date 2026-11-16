@@ -19,6 +19,15 @@ ENV/
 env/
 .python-version
 
+# ---------------------------------------------------------------------------
+# Node — the experimental chat-ui only. The Python image never installs these,
+# so they must not reach the repository: node_modules alone is 66 MB.
+# ---------------------------------------------------------------------------
+node_modules/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+
 # Testing / tooling caches
 .pytest_cache/
 .mypy_cache/

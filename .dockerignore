@@ -12,6 +12,11 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 
+# Experimental React client. Not part of the Python service, and node_modules
+# alone is 66 MB of build context the image has no use for.
+chat-ui/
+node_modules/
+
 # Data and runtime artefacts — the container creates its own at /data
 data/
 build/
