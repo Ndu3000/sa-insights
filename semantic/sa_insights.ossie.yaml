@@ -1005,7 +1005,8 @@ semantic_model:
     - period
     unique_keys:
     - - period
-    description: Consumer price index level, all items. Base varies by year. Covers 1957-01 to 2025-01.
+    description: Consumer price index level, all items, as published by the SARB (2021=100 base). Current
+      to within two months of release. Covers 2000-01 to 2026-09.
     ai_context:
       synonyms:
       - cpi (all items)
@@ -1090,9 +1091,9 @@ semantic_model:
     custom_extensions:
     - vendor_name: SA_INSIGHTS
       data: '{"series_key": "cpi_index", "label": "CPI (all items)", "short_label": "CPI", "category":
-        "Prices", "unit": "index", "frequency": "M", "provider": "dbnomics", "higher_is_better": null,
-        "upstream_indicator": {"REF_AREA": ["ZA"], "INDICATOR": ["PCPI_IX"], "FREQ": ["M"]}, "observations":
-        817, "first_period": "1957-01-01", "last_period": "2025-01-01", "last_value": 205.407737238383}'
+        "Prices", "unit": "index", "frequency": "M", "provider": "sarb", "higher_is_better": null, "upstream_indicator":
+        {}, "observations": 321, "first_period": "2000-01-01", "last_period": "2026-09-01", "last_value":
+        108.1}'
   - name: fct_inflation_annual
     source: sa_insights.fct_inflation_annual
     primary_key:
@@ -1194,8 +1195,9 @@ semantic_model:
     - period
     unique_keys:
     - - period
-    description: Unemployed as a share of the total labour force (ILO modelled estimate). Covers 1991-01
-      to 2025-01.
+    description: Official unemployment rate from the Quarterly Labour Force Survey, republished by the
+      SARB. Quarterly and current, rather than the World Bank's annual ILO modelled estimate which lags
+      by a year. Covers 1991-01 to 2025-01.
     ai_context:
       synonyms:
       - unemployment rate
@@ -1203,7 +1205,7 @@ semantic_model:
       - joblessness
       examples:
       - What is the latest unemployment?
-      - Show unemployment rate by year over the last five years
+      - Show unemployment rate by quarter over the last five years
       - Is unemployment rate rising pressure?
     fields:
     - name: period
@@ -1282,23 +1284,24 @@ semantic_model:
     custom_extensions:
     - vendor_name: SA_INSIGHTS
       data: '{"series_key": "unemployment", "label": "Unemployment rate", "short_label": "Unemployment",
-        "category": "Labour", "unit": "%", "frequency": "A", "provider": "worldbank", "higher_is_better":
-        false, "upstream_indicator": "SL.UEM.TOTL.ZS", "observations": 35, "first_period": "1991-01-01",
-        "last_period": "2025-01-01", "last_value": 32.391}'
+        "category": "Labour", "unit": "%", "frequency": "Q", "provider": "sarb", "higher_is_better": false,
+        "upstream_indicator": {}, "observations": 35, "first_period": "1991-01-01", "last_period": "2025-01-01",
+        "last_value": 32.391}'
   - name: fct_lf_participation
     source: sa_insights.fct_lf_participation
     primary_key:
     - period
     unique_keys:
     - - period
-    description: Labour force as a share of the population aged 15 and older. Covers 1990-01 to 2025-01.
+    description: Labour force as a share of the population aged 15 and older, from the Quarterly Labour
+      Force Survey. Covers 1990-01 to 2025-01.
     ai_context:
       synonyms:
       - labour force participation
       - participation
       examples:
       - What is the latest participation?
-      - Show labour force participation by year over the last five years
+      - Show labour force participation by quarter over the last five years
       - Is labour force participation improving?
     fields:
     - name: period
@@ -1377,9 +1380,9 @@ semantic_model:
     custom_extensions:
     - vendor_name: SA_INSIGHTS
       data: '{"series_key": "lf_participation", "label": "Labour force participation", "short_label":
-        "Participation", "category": "Labour", "unit": "%", "frequency": "A", "provider": "worldbank",
-        "higher_is_better": true, "upstream_indicator": "SL.TLF.CACT.ZS", "observations": 36, "first_period":
-        "1990-01-01", "last_period": "2025-01-01", "last_value": 55.584}'
+        "Participation", "category": "Labour", "unit": "%", "frequency": "Q", "provider": "sarb", "higher_is_better":
+        true, "upstream_indicator": {}, "observations": 36, "first_period": "1990-01-01", "last_period":
+        "2025-01-01", "last_value": 55.584}'
   - name: fct_policy_rate
     source: sa_insights.fct_policy_rate
     primary_key:
@@ -1869,15 +1872,17 @@ semantic_model:
     - period
     unique_keys:
     - - period
-    description: Monthly value of merchandise exports, free on board. Covers 2006-01 to 2025-03.
+    description: Monthly value of total exports in rand millions, current prices, as published by the
+      SARB. Rand rather than dollars so the series does not move with the exchange rate alone. Covers
+      2012-02 to 2026-09.
     ai_context:
       synonyms:
-      - exports (goods)
+      - total exports
       - exports
       examples:
       - What is the latest exports?
-      - Show exports (goods) by month over the last five years
-      - Is exports (goods) improving?
+      - Show total exports by month over the last five years
+      - Is total exports improving?
     fields:
     - name: period
       expression:
@@ -1885,7 +1890,7 @@ semantic_model:
       datatype: Date
       dimension:
         is_time: true
-      description: Observation period for Exports (goods).
+      description: Observation period for Total exports.
       ai_context:
         synonyms:
         - date
@@ -1898,7 +1903,7 @@ semantic_model:
       datatype: Float
       dimension:
         is_time: false
-      description: Observed value of Exports (goods), measured in US$ m.
+      description: Observed value of Total exports, measured in R m.
       ai_context:
         synonyms:
         - reading
@@ -1923,7 +1928,7 @@ semantic_model:
       expression:
         sql: AVG(value)
       datatype: Float
-      description: Mean Exports (goods) across the selected periods.
+      description: Mean Total exports across the selected periods.
       ai_context:
         synonyms:
         - mean
@@ -1932,17 +1937,17 @@ semantic_model:
       expression:
         sql: MIN(value)
       datatype: Float
-      description: Lowest Exports (goods) in the selected periods.
+      description: Lowest Total exports in the selected periods.
     - name: value_max
       expression:
         sql: MAX(value)
       datatype: Float
-      description: Highest Exports (goods) in the selected periods.
+      description: Highest Total exports in the selected periods.
     - name: value_standard_deviation
       expression:
         sql: STDDEV(value)
       datatype: Float
-      description: Dispersion of Exports (goods) across the selected periods.
+      description: Dispersion of Total exports across the selected periods.
       ai_context:
         synonyms:
         - volatility
@@ -1954,25 +1959,25 @@ semantic_model:
       description: Number of non-missing observations in the selection.
     custom_extensions:
     - vendor_name: SA_INSIGHTS
-      data: '{"series_key": "exports_usd", "label": "Exports (goods)", "short_label": "Exports", "category":
-        "External Sector", "unit": "US$ m", "frequency": "M", "provider": "dbnomics", "higher_is_better":
-        true, "upstream_indicator": {"REF_AREA": ["ZA"], "INDICATOR": ["TXG_FOB_USD"], "FREQ": ["M"]},
-        "observations": 231, "first_period": "2006-01-01", "last_period": "2025-03-01", "last_value":
-        9378.0}'
+      data: '{"series_key": "exports_usd", "label": "Total exports", "short_label": "Exports", "category":
+        "External Sector", "unit": "R m", "frequency": "M", "provider": "sarb", "higher_is_better": true,
+        "upstream_indicator": {}, "observations": 176, "first_period": "2012-02-01", "last_period": "2026-09-01",
+        "last_value": 190591.0}'
   - name: fct_imports_usd
     source: sa_insights.fct_imports_usd
     primary_key:
     - period
     unique_keys:
     - - period
-    description: Monthly value of merchandise imports, free on board. Covers 2006-01 to 2025-03.
+    description: Monthly value of total imports in rand millions, current prices, as published by the
+      SARB. Covers 2012-02 to 2026-09.
     ai_context:
       synonyms:
-      - imports (goods)
+      - total imports
       - imports
       examples:
       - What is the latest imports?
-      - Show imports (goods) by month over the last five years
+      - Show total imports by month over the last five years
     fields:
     - name: period
       expression:
@@ -1980,7 +1985,7 @@ semantic_model:
       datatype: Date
       dimension:
         is_time: true
-      description: Observation period for Imports (goods).
+      description: Observation period for Total imports.
       ai_context:
         synonyms:
         - date
@@ -1993,7 +1998,7 @@ semantic_model:
       datatype: Float
       dimension:
         is_time: false
-      description: Observed value of Imports (goods), measured in US$ m.
+      description: Observed value of Total imports, measured in R m.
       ai_context:
         synonyms:
         - reading
@@ -2018,7 +2023,7 @@ semantic_model:
       expression:
         sql: AVG(value)
       datatype: Float
-      description: Mean Imports (goods) across the selected periods.
+      description: Mean Total imports across the selected periods.
       ai_context:
         synonyms:
         - mean
@@ -2027,17 +2032,17 @@ semantic_model:
       expression:
         sql: MIN(value)
       datatype: Float
-      description: Lowest Imports (goods) in the selected periods.
+      description: Lowest Total imports in the selected periods.
     - name: value_max
       expression:
         sql: MAX(value)
       datatype: Float
-      description: Highest Imports (goods) in the selected periods.
+      description: Highest Total imports in the selected periods.
     - name: value_standard_deviation
       expression:
         sql: STDDEV(value)
       datatype: Float
-      description: Dispersion of Imports (goods) across the selected periods.
+      description: Dispersion of Total imports across the selected periods.
       ai_context:
         synonyms:
         - volatility
@@ -2049,11 +2054,10 @@ semantic_model:
       description: Number of non-missing observations in the selection.
     custom_extensions:
     - vendor_name: SA_INSIGHTS
-      data: '{"series_key": "imports_usd", "label": "Imports (goods)", "short_label": "Imports", "category":
-        "External Sector", "unit": "US$ m", "frequency": "M", "provider": "dbnomics", "higher_is_better":
-        null, "upstream_indicator": {"REF_AREA": ["ZA"], "INDICATOR": ["TMG_FOB_USD"], "FREQ": ["M"]},
-        "observations": 231, "first_period": "2006-01-01", "last_period": "2025-03-01", "last_value":
-        8081.0}'
+      data: '{"series_key": "imports_usd", "label": "Total imports", "short_label": "Imports", "category":
+        "External Sector", "unit": "R m", "frequency": "M", "provider": "sarb", "higher_is_better": null,
+        "upstream_indicator": {}, "observations": 176, "first_period": "2012-02-01", "last_period": "2026-09-01",
+        "last_value": 170795.0}'
   - name: fct_current_account
     source: sa_insights.fct_current_account
     primary_key:
@@ -3390,18 +3394,18 @@ semantic_model:
     - period
     ai_context:
       instructions: Join on period to attach calendar attributes such as year and quarter to this indicator.
-  - name: fct_unemployment_to_dim_date_year
+  - name: fct_unemployment_to_dim_date_quarter
     from: fct_unemployment
-    to: dim_date_year
+    to: dim_date_quarter
     from_columns:
     - period
     to_columns:
     - period
     ai_context:
       instructions: Join on period to attach calendar attributes such as year and quarter to this indicator.
-  - name: fct_lf_participation_to_dim_date_year
+  - name: fct_lf_participation_to_dim_date_quarter
     from: fct_lf_participation
-    to: dim_date_year
+    to: dim_date_quarter
     from_columns:
     - period
     to_columns:
@@ -3622,7 +3626,8 @@ semantic_model:
     expression:
       sql: AVG(fct_exports_usd.value) - AVG(fct_imports_usd.value)
     datatype: Float
-    description: Goods exports less goods imports, in millions of US dollars.
+    description: Total exports less total imports, in millions of rand, current prices. Positive means
+      a trade surplus.
     ai_context:
       synonyms:
       - net exports
@@ -3638,7 +3643,7 @@ semantic_model:
       as each fact's observation_count metric.
   custom_extensions:
   - vendor_name: SA_INSIGHTS
-    data: '{"generated_at": "2026-11-14T05:34:49+00:00", "document_version": "0.1.1", "series_count":
+    data: '{"generated_at": "2026-11-16T05:19:57+00:00", "document_version": "0.1.1", "series_count":
       33, "generator": "scripts/build_semantic_model.py", "note": "0.1.1 is the released shape (semantic_model
       array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema
       is unstable."}'
