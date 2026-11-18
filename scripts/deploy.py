@@ -48,7 +48,12 @@ def main() -> int:
             )
             return 1
 
-    code = run("modal deploy", ["uv", "run", "modal", "deploy", "modal_app.py"])
+    # --extra deploy: the modal CLI lives in an optional extra, and a bare
+    # `uv run` re-syncs the environment to the default groups, uninstalling it.
+    code = run(
+        "modal deploy",
+        ["uv", "run", "--extra", "deploy", "modal", "deploy", "modal_app.py"],
+    )
     if code == 0:
         print("\nDeployed. Verify with:")
         print("  curl -s https://ndu3000--sa-insights-chat-api.us-east.modal.run/health")
