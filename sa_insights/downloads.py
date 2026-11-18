@@ -32,14 +32,13 @@ from pathlib import Path
 import pandas as pd
 
 from . import store
-from .catalog import SERIES
 from .semantic import DRAFT_VERSION, OSSIE_VERSION, build_model, validate_schema
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA_PATH = ROOT / "semantic" / "ossie-schema.json"
 
 # Per-series measurement columns for the Power BI star schema.
-POWERBI_HORIZONS = {"M": 12, "Q": 8, "A": 5}
+POWERBI_HORIZONS = {"D": 10, "M": 12, "Q": 8, "A": 5}
 MEASURE_COUNT = 17
 
 

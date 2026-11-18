@@ -21,6 +21,94 @@
       },
       "datasets": [
         {
+          "name": "dim_date_day",
+          "source": "sa_insights.dim_date_day",
+          "primary_key": [
+            "period"
+          ],
+          "unique_keys": [
+            [
+              "period"
+            ]
+          ],
+          "description": "Business-day calendar dimension.",
+          "ai_context": {
+            "synonyms": [
+              "calendar",
+              "date dimension",
+              "time dimension"
+            ],
+            "examples": [
+              "Group day data by year"
+            ]
+          },
+          "fields": [
+            {
+              "name": "period",
+              "expression": {
+                "sql": "period"
+              },
+              "datatype": "Date",
+              "dimension": {
+                "is_time": true
+              },
+              "description": "First day of the period this row represents."
+            },
+            {
+              "name": "grain",
+              "expression": {
+                "sql": "grain"
+              },
+              "datatype": "String",
+              "description": "Frequency of the series this period belongs to."
+            },
+            {
+              "name": "year",
+              "expression": {
+                "sql": "EXTRACT(YEAR FROM period)"
+              },
+              "datatype": "Integer",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Calendar year of the period."
+            },
+            {
+              "name": "quarter",
+              "expression": {
+                "sql": "EXTRACT(QUARTER FROM period)"
+              },
+              "datatype": "Integer",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Calendar quarter of the period."
+            },
+            {
+              "name": "month_of_year",
+              "expression": {
+                "sql": "EXTRACT(MONTH FROM period)"
+              },
+              "datatype": "Integer",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Calendar month of year of the period."
+            },
+            {
+              "name": "day_of_month",
+              "expression": {
+                "sql": "EXTRACT(DAY FROM period)"
+              },
+              "datatype": "Integer",
+              "dimension": {
+                "is_time": false
+              },
+              "description": "Calendar day of month of the period."
+            }
+          ]
+        },
+        {
           "name": "dim_date_month",
           "source": "sa_insights.dim_date_month",
           "primary_key": [
@@ -666,7 +754,7 @@
               "period"
             ]
           ],
-          "description": "Volume of retail trade at constant prices. Source: SARB, updated monthly. Covers 1980-01 to 2026-08.",
+          "description": "Volume of retail trade at constant prices. Source: SARB, updated monthly. Covers 1980-01 to 2026-09.",
           "ai_context": {
             "synonyms": [
               "retail trade"
@@ -794,7 +882,7 @@
           "custom_extensions": [
             {
               "vendor_name": "SA_INSIGHTS",
-              "data": "{\"series_key\": \"retail_sales\", \"label\": \"Retail trade\", \"short_label\": \"Retail trade\", \"category\": \"Growth & Output\", \"unit\": \"index (2019=100)\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 560, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-08-01\", \"last_value\": 108.5767}"
+              "data": "{\"series_key\": \"retail_sales\", \"label\": \"Retail trade\", \"short_label\": \"Retail trade\", \"category\": \"Growth & Output\", \"unit\": \"index (2019=100)\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 561, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-09-01\", \"last_value\": 108.1278}"
             }
           ]
         },
@@ -1528,7 +1616,7 @@
               "period"
             ]
           ],
-          "description": "Consumer price inflation, year-on-year. Published by Stats SA and carried on the SARB Web API, which updates it within days of release. Covers 2000-01 to 2026-09.",
+          "description": "Consumer price inflation, year-on-year. Published by Stats SA and carried on the SARB Web API, which updates it within days of release. Covers 2000-01 to 2026-10.",
           "ai_context": {
             "synonyms": [
               "cpi inflation (yoy)",
@@ -1660,7 +1748,7 @@
           "custom_extensions": [
             {
               "vendor_name": "SA_INSIGHTS",
-              "data": "{\"series_key\": \"cpi_yoy\", \"label\": \"CPI inflation (YoY)\", \"short_label\": \"Inflation\", \"category\": \"Prices\", \"unit\": \"%\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 321, \"first_period\": \"2000-01-01\", \"last_period\": \"2026-09-01\", \"last_value\": 4.5}"
+              "data": "{\"series_key\": \"cpi_yoy\", \"label\": \"CPI inflation (YoY)\", \"short_label\": \"Inflation\", \"category\": \"Prices\", \"unit\": \"%\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 322, \"first_period\": \"2000-01-01\", \"last_period\": \"2026-10-01\", \"last_value\": 5.2}"
             }
           ]
         },
@@ -1819,7 +1907,7 @@
               "period"
             ]
           ],
-          "description": "Consumer price index level, all items, as published by the SARB (2021=100 base). Current to within two months of release. Covers 2000-01 to 2026-09.",
+          "description": "Consumer price index level, all items, as published by the SARB (2021=100 base). Current to within two months of release. Covers 2000-01 to 2026-10.",
           "ai_context": {
             "synonyms": [
               "cpi (all items)",
@@ -1948,7 +2036,7 @@
           "custom_extensions": [
             {
               "vendor_name": "SA_INSIGHTS",
-              "data": "{\"series_key\": \"cpi_index\", \"label\": \"CPI (all items)\", \"short_label\": \"CPI\", \"category\": \"Prices\", \"unit\": \"index\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 321, \"first_period\": \"2000-01-01\", \"last_period\": \"2026-09-01\", \"last_value\": 108.1}"
+              "data": "{\"series_key\": \"cpi_index\", \"label\": \"CPI (all items)\", \"short_label\": \"CPI\", \"category\": \"Prices\", \"unit\": \"index\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": null, \"upstream_indicator\": {}, \"observations\": 322, \"first_period\": \"2000-01-01\", \"last_period\": \"2026-10-01\", \"last_value\": 108.9}"
             }
           ]
         },
@@ -2836,7 +2924,7 @@
               "period"
             ]
           ],
-          "description": "Official SARB reference rate, daily, collapsed to month-end. Higher means a weaker rand. Covers 1980-01 to 2026-11.",
+          "description": "Official SARB reference rate, every business day. Higher means a weaker rand. Covers 2000-01 to 2026-11.",
           "ai_context": {
             "synonyms": [
               "rand per us dollar",
@@ -2847,7 +2935,7 @@
             ],
             "examples": [
               "What is the latest rand / usd?",
-              "Show rand per us dollar by month over the last five years",
+              "Show rand per us dollar by day over the last five years",
               "Is rand per us dollar rising pressure?"
             ]
           },
@@ -2969,7 +3057,7 @@
           "custom_extensions": [
             {
               "vendor_name": "SA_INSIGHTS",
-              "data": "{\"series_key\": \"usd_zar\", \"label\": \"Rand per US dollar\", \"short_label\": \"Rand / USD\", \"category\": \"External Sector\", \"unit\": \"ZAR\", \"frequency\": \"M\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 563, \"first_period\": \"1980-01-01\", \"last_period\": \"2026-11-01\", \"last_value\": 16.6795}"
+              "data": "{\"series_key\": \"usd_zar\", \"label\": \"Rand per US dollar\", \"short_label\": \"Rand / USD\", \"category\": \"External Sector\", \"unit\": \"ZAR\", \"frequency\": \"D\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 6718, \"first_period\": \"2000-01-04\", \"last_period\": \"2026-11-18\", \"last_value\": 17.0718}"
             }
           ]
         },
@@ -5545,9 +5633,9 @@
           }
         },
         {
-          "name": "fct_usd_zar_to_dim_date_month",
+          "name": "fct_usd_zar_to_dim_date_day",
           "from": "fct_usd_zar",
-          "to": "dim_date_month",
+          "to": "dim_date_day",
           "from_columns": [
             "period"
           ],
@@ -5858,7 +5946,7 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"generated_at\": \"2026-11-18T05:28:14+00:00\", \"document_version\": \"0.1.1\", \"series_count\": 35, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
+          "data": "{\"generated_at\": \"2026-11-18T20:14:40+00:00\", \"document_version\": \"0.1.1\", \"series_count\": 35, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
         }
       ]
     }

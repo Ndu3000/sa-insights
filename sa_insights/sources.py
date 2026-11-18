@@ -373,7 +373,11 @@ def _fetch_sarb(spec: SeriesSpec) -> pd.Series:
         raise FetchError(f"SARB {code}: no usable observations")
 
     frame = pd.DataFrame(rows, columns=["date", "value"])
-    if spec.frequency == "M":
+    if spec.frequency == "D":
+        # Keep every business-day row. Collapsing to month-end is what made the
+        # rand look static between refreshes; daily is the whole point here.
+        pass
+    elif spec.frequency == "M":
         # Collapse the intra-month business-day rows to one value per month.
         frame["month"] = frame["date"].dt.to_period("M")
         frame = frame.groupby("month", as_index=False).last()

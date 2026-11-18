@@ -28,7 +28,7 @@ from sa_insights.sources import read_cache  # noqa: E402
 
 # Allowed staleness in days, by frequency. Generous enough for publication
 # lag, tight enough that a frozen feed trips it.
-MAX_LAG_DAYS = {"M": 150, "Q": 400, "A": 800}
+MAX_LAG_DAYS = {"D": 6, "M": 150, "Q": 400, "A": 800}
 
 # Indicators the dashboard leads with. A breach here is treated as more serious
 # because these are the numbers a reader sees first.

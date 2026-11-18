@@ -438,8 +438,29 @@ sa_insights.refresh
    ↓  sources.py — SARB, IMF DataMapper, World Bank, FRED
    ↓  DuckDB observations
    ↓  forecast.py — Chronos-Bolt + classical, rolling-origin backtest
+   ↓  nowcast.py — ridge bridge estimate of the unprinted GDP quarter
    ↓  DuckDB forecast_runs + forecasts, MLflow tracking
 ```
+
+**Daily FX.** USD/ZAR is fetched at its native daily cadence (SARB `EXCX135D`,
+every business day since 2000, ~6,700 observations). Earlier builds collapsed
+it to month-end, which made the rand look static between refreshes. The whole
+stack now understands a `"D"` frequency: fetcher, forecast horizons (10
+business days), freshness budget (6 days), chat YoY (calendar-matched, not row
+offset, because holidays drift), date labels, and the Power BI day-grain date
+dimension.
+
+**GDP nowcast.** After forecasting, `refresh._write_nowcast` runs the bridge
+equation in `sa_insights/nowcast.py` and stores one row under `gdp_nowcast`
+(family `nowcast`). It is an estimate of the quarter Stats SA has not published
+yet, built only from monthly drivers already in hand (prior-quarter means, so
+no leakage). It is deliberately GDP-only: walk-forward backtests showed +13–14%
+skill vs naive for GDP but −54% for CPI, +0.5% for unemployment and −20% for
+retail — nowcasting those would ship confident wrong numbers. The nowcast never
+raises into the refresh: if history is too short to backtest honestly, it is
+simply omitted. The exporter gives it a labelled synthetic spec ("estimate")
+and the static page renders it as a separate card with its skill and wide 80%
+band.
 
 Triggered three ways:
 - **Scheduled** — `worker` container, `REFRESH_CRON` (default `15 5 * * *` UTC)

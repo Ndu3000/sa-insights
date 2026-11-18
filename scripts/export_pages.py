@@ -28,12 +28,8 @@ import pandas as pd  # noqa: E402
 
 from sa_insights import store, ui  # noqa: E402
 from sa_insights.catalog import BY_KEY, HEADLINE, SERIES, short_label  # noqa: E402
-from sa_insights.forecast import (  # noqa: E402
-    ForecastError,
-    infer_frequency,
-    run_forecast,
-)
-from sa_insights.sources import cache_meta, read_cache  # noqa: E402
+from sa_insights.forecast import infer_frequency  # noqa: E402
+from sa_insights.sources import read_cache  # noqa: E402
 
 # Output directory, overridable so the Docker worker can render into a git
 # checkout mounted at /publish instead of the image's own tree.
@@ -114,7 +110,7 @@ def kpi_row(data: dict[str, pd.Series]) -> str:
         spec = BY_KEY[key]
         series = data[key]
         freq = infer_frequency(series.index)
-        ppy = {"M": 12, "Q": 4, "A": 1}.get(freq, 1)
+        ppy = {"D": 252, "M": 12, "Q": 4, "A": 1}.get(freq, 1)
         change = None
         if len(series) > ppy:
             prev = series.iloc[-(ppy + 1)]
@@ -221,7 +217,7 @@ def _fc_chart(spec, entry: dict, height: int = 330) -> str:
     dates = pd.to_datetime(entry["periods"])
     hist = _history(spec.key)
     freq = entry["frequency"]
-    date_fmt = "%Y" if freq == "A" else "%b %Y"
+    date_fmt = "%Y" if freq == "A" else ("%d %b %Y" if freq == "D" else "%b %Y")
 
     fig = go.Figure()
 
@@ -346,6 +342,57 @@ def forecast_cards(data: dict[str, pd.Series]) -> str:
       </div>"""
         )
     return "".join(cards)
+
+
+def nowcast_card() -> str:
+    """The GDP nowcast: an estimate of the quarter Stats SA has not published.
+
+    Kept visually separate from the forecast lab because it answers a different
+    question — "what is growth *right now*" rather than "where is this series
+    heading" — and its wide band must not be mistaken for a precise projection.
+    """
+    if not FC_PATH.exists():
+        return ""
+    payload = json.loads(FC_PATH.read_text(encoding="utf-8"))
+    entry = payload.get("series", {}).get("gdp_nowcast")
+    if not entry or not entry.get("forecast"):
+        return ""
+
+    value = entry["forecast"][0]
+    lo, hi = entry["lower"][0], entry["upper"][0]
+    skill = entry.get("skill_vs_naive")
+    period = pd.Timestamp(entry["periods"][0])
+    quarter = f"Q{(period.month - 1) // 3 + 1} {period.year}"
+    skill_chip = (
+        f'<span class="chip ok">beats naive by {skill:.0f}%</span>'
+        if skill is not None and skill > 0
+        else '<span class="chip stale">backtested vs naive</span>'
+    )
+    return f"""
+      <div class="panel forecast">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">GDP growth nowcast — {quarter}</div>
+            <div class="panel-sub">
+              Bridge equation on monthly drivers · estimate, not an official figure
+            </div>
+          </div>
+          <div class="chip-row"><span class="chip fm">nowcast</span>{skill_chip}</div>
+        </div>
+        <div class="fc-stats">
+          <div><span class="fc-label">Last published</span><span class="fc-value">{entry['last_value']:.2f}%</span></div>
+          <div><span class="fc-label">Nowcast</span><span class="fc-value accent">{value:.2f}%</span></div>
+          <div><span class="fc-label">80% range</span><span class="fc-value">{lo:.1f}% – {hi:.1f}%</span></div>
+        </div>
+        <p class="note" style="margin-top:.6rem">
+          Estimated from the rand, the leading indicator, retail, manufacturing,
+          mining, vehicle sales and interest rates — all published monthly, so
+          they arrive before GDP does. The wide band is honest: quarterly GDP is
+          hard to pin down from monthly proxies. Only GDP passed the walk-forward
+          backtest against a naive forecast; CPI, unemployment and retail did
+          not, so they are deliberately not nowcast.
+        </p>
+      </div>"""
 
 
 def fm_winners_table() -> str:
@@ -494,14 +541,16 @@ def coverage_table(data: dict[str, pd.Series]) -> str:
     for spec in SERIES:
         if spec.key not in data:
             continue
-        meta = cache_meta(spec.key)
         series = data[spec.key]
         freq = infer_frequency(series.index)
+        # Daily series need day-level dates; "Nov 2026" would hide the fact
+        # that the rand is current to the business day.
+        date_fmt = "%d %b %Y" if freq == "D" else "%b %Y"
         rows.append(
             f"<tr><td>{html.escape(spec.label)}</td><td>{html.escape(spec.category)}</td>"
             f"<td>{spec.freq_label}</td><td class='num'>{len(series):,}</td>"
-            f"<td>{series.index[0].strftime('%b %Y')}</td>"
-            f"<td>{series.index[-1].strftime('%b %Y')}</td>"
+            f"<td>{series.index[0].strftime(date_fmt)}</td>"
+            f"<td>{series.index[-1].strftime(date_fmt)}</td>"
             f"<td class='num'>{ui.fmt(series.iloc[-1], spec.decimals)}</td>"
             f"<td>{html.escape(spec.unit)}</td></tr>"
         )
@@ -856,6 +905,7 @@ footer a{{color:var(--muted)}}
   {foundation_model_summary()}
   {fm_winners_table()}
   {forecast_cards(data)}
+  {nowcast_card()}
   <p class="note">
     MASE below 1.0 means the model outperformed a naive forecast across the
     backtest windows. Where MASE exceeds 1.0 the dashboard says so rather than

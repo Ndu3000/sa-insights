@@ -26,7 +26,7 @@ from .forecast import ForecastError, infer_frequency, run_forecast
 from .sources import load_all
 
 # One horizon per frequency: a year of months, two years of quarters, five years.
-HORIZONS = {"M": 12, "Q": 8, "A": 5}
+HORIZONS = {"D": 10, "M": 12, "Q": 8, "A": 5}
 CONFIDENCE = 0.80
 
 
@@ -238,10 +238,73 @@ def refresh_all(*, force: bool = True, do_forecast: bool = True, progress=None) 
         )
         report.forecasts_written = written
         report.forecasts_failed = failures
+        _write_nowcast(data, ingest_run_id=report.ingest_run_id)
         store.prune_forecasts(keep_per_series=10)
 
     report.finished_at = _utcnow()
     return report
+
+
+def _write_nowcast(data: dict[str, pd.Series], *, ingest_run_id: str | None) -> None:
+    """Persist the GDP bridge nowcast as a clearly-labelled estimate.
+
+    Stored under ``gdp_nowcast`` with family ``nowcast`` so every consumer can
+    distinguish it from an observation or a fitted forecast. Never raises: a
+    nowcast failure must not abort the refresh.
+    """
+    from . import nowcast as nc
+
+    try:
+        result = nc.nowcast_gdp(data)
+    except Exception:  # noqa: BLE001 - optional enrichment
+        return
+    if result is None:
+        return
+
+    path = pd.DataFrame(
+        [
+            {
+                "period": result.period.date(),
+                "forecast": result.value,
+                "lower": result.lower,
+                "upper": result.upper,
+            }
+        ]
+    )
+    leaderboard = pd.DataFrame(
+        [
+            {
+                "Model": "Ridge bridge (monthly drivers)",
+                "Family": "nowcast",
+                "MASE": None,
+                "RMSE": result.rmse,
+                "skill_vs_naive": result.skill_vs_naive,
+            }
+        ]
+    )
+    try:
+        store.write_forecast_run(
+            run_id=str(uuid.uuid4()),
+            series_key="gdp_nowcast",
+            generated_at=_utcnow(),
+            horizon=1,
+            confidence=0.8,
+            model="Ridge bridge (monthly drivers)",
+            family="nowcast",
+            mase=None,
+            naive_mase=None,
+            skill_vs_naive=result.skill_vs_naive,
+            window_obs=result.n_train,
+            n_obs=result.n_train,
+            forecast_end=result.value,
+            last_value=float(data["real_gdp_q"].pct_change(4).iloc[-1] * 100),
+            mlflow_run_id=None,
+            leaderboard=leaderboard,
+            forecast_frame=path,
+            ingest_run_id=ingest_run_id,
+        )
+    except Exception:  # noqa: BLE001 - optional enrichment
+        return
 
 
 def bootstrap_if_empty(force: bool = True) -> RefreshReport | None:

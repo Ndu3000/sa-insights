@@ -49,10 +49,21 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = Path(os.getenv("SA_SEMANTIC_OUT", ROOT / "semantic"))
 SCHEMA_PATH = Path(os.getenv("SA_OSSIE_SCHEMA", ROOT / "semantic" / "ossie-schema.json"))
 
-GRAIN_DATASET = {"M": "dim_date_month", "Q": "dim_date_quarter", "A": "dim_date_year"}
+GRAIN_DATASET = {
+    "D": "dim_date_day",
+    "M": "dim_date_month",
+    "Q": "dim_date_quarter",
+    "A": "dim_date_year",
+}
 
 # Per-grain extra calendar fields, expressed as portable Ossie SQL.
 GRAIN_FIELDS = {
+    "D": [
+        ("year", "EXTRACT(YEAR FROM period)", "Integer"),
+        ("quarter", "EXTRACT(QUARTER FROM period)", "Integer"),
+        ("month_of_year", "EXTRACT(MONTH FROM period)", "Integer"),
+        ("day_of_month", "EXTRACT(DAY FROM period)", "Integer"),
+    ],
     "M": [
         ("year", "EXTRACT(YEAR FROM period)", "Integer"),
         ("quarter", "EXTRACT(QUARTER FROM period)", "Integer"),
@@ -107,6 +118,7 @@ def _dimension_datasets() -> list[dict]:
                 "primary_key": ["period"],
                 "unique_keys": [["period"]],
                 "description": {
+                    "dim_date_day": "Business-day calendar dimension.",
                     "dim_date_month": "Monthly calendar dimension.",
                     "dim_date_quarter": "Quarterly calendar dimension.",
                     "dim_date_year": "Annual calendar dimension.",
@@ -256,7 +268,7 @@ def _synonyms(spec: SeriesSpec) -> list[str]:
 
 
 def _examples(spec: SeriesSpec) -> list[str]:
-    grain = {"M": "month", "Q": "quarter", "A": "year"}.get(spec.frequency, "period")
+    grain = {"D": "day", "M": "month", "Q": "quarter", "A": "year"}.get(spec.frequency, "period")
     examples = [f"What is the latest {short_label(spec).lower()}?"]
     examples.append(f"Show {spec.label.lower()} by {grain} over the last five years")
     if spec.higher_is_better is not None:

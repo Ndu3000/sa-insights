@@ -135,8 +135,9 @@ def build_frames() -> dict[str, pd.DataFrame]:
         ],
     )
 
-    # Date dimension, one row per first-of-month. Monthly, quarterly and annual
-    # observations all land on month starts, so a single grain serves all three.
+    # Date dimension, one row per distinct observation date. Daily series land
+    # on business days, monthly/quarterly/annual on period starts; a single
+    # date-grain dimension serves all four.
     dates = pd.DatetimeIndex(sorted(all_dates))
     dim_date = pd.DataFrame(
         {
@@ -148,7 +149,8 @@ def build_frames() -> dict[str, pd.DataFrame]:
             "month": dates.month,
             "month_name": dates.strftime("%B"),
             "year_month": dates.strftime("%Y-%m"),
-            "sort_key": dates.year * 100 + dates.month,
+            "day": dates.day,
+            "sort_key": dates.year * 10000 + dates.month * 100 + dates.day,
         }
     )
 
@@ -434,7 +436,6 @@ def build_bim(frames: dict[str, pd.DataFrame]) -> dict:
     tables = []
 
     # ----- dim_indicator -------------------------------------------------
-    di = frames["dim_indicator"]
     tables.append(
         {
             "name": "dim_indicator",

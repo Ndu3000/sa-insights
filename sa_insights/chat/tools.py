@@ -21,9 +21,11 @@ Guardrails
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import date
-from typing import Any, Iterable
+from typing import Any
+
+import pandas as pd
 
 from .. import store
 
@@ -279,7 +281,20 @@ def get_series(
     # Year-on-year only where the cadence makes it meaningful. Comparing an
     # annual series to a point one row back would be called "yoy" wrongly.
     cadence = (info.get("frequency") or "").upper()
-    if cadence in {"M", "Q"}:
+    if cadence == "D":
+        # Business-day counts drift with holidays, so a row offset would compare
+        # the wrong day. Match the calendar: the last observation on or before
+        # the same date a year ago.
+        target = pd.Timestamp(latest["period"]) - pd.DateOffset(years=1)
+        prior = run_select(
+            "SELECT period, value FROM observations WHERE series_key = ? "
+            "AND period <= ? ORDER BY period DESC LIMIT 1",
+            [key, target.strftime("%Y-%m-%d")],
+        )
+        if prior:
+            before = {"period": _iso(prior[0]["period"]), "value": float(prior[0]["value"])}
+            yoy = _change([before, latest], is_rate=as_rate)
+    elif cadence in {"M", "Q"}:
         back = 12 if cadence == "M" else 4
         sql_yoy = (
             "SELECT period, value FROM observations WHERE series_key = ? "

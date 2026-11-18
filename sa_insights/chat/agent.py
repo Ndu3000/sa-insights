@@ -752,7 +752,7 @@ def _default_periods(key: str) -> int:
     except Exception:  # noqa: BLE001 - a lookup failure must not break the answer
         freq = "M"
 
-    return {"M": 120, "Q": 40, "A": 10}.get(freq, 60)
+    return {"D": 252, "M": 120, "Q": 40, "A": 10}.get(freq, 60)
 
 
 def _subject_terms(key: str) -> set[str]:

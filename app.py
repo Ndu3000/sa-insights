@@ -19,7 +19,6 @@ from sa_insights import chronos_fm, downloads, refresh, store, tracking, ui
 from sa_insights.chat import present
 from sa_insights.catalog import (
     BY_KEY,
-    CATEGORIES,
     FORECAST_DEFAULT,
     HEADLINE,
     SERIES,
@@ -28,7 +27,6 @@ from sa_insights.catalog import (
 from sa_insights.forecast import (
     FM_ENABLED,
     ForecastError,
-    default_window,
     infer_frequency,
     model_names,
     run_forecast,
@@ -147,7 +145,7 @@ def pct_change(series: pd.Series, periods: int) -> float | None:
 
 
 def periods_per_year(freq: str) -> int:
-    return {"M": 12, "Q": 4, "A": 1}.get(freq, 1)
+    return {"D": 252, "M": 12, "Q": 4, "A": 1}.get(freq, 1)
 
 
 def _tile_label(spec) -> str:
@@ -675,8 +673,8 @@ def view_forecast(data: dict[str, pd.Series], specs_by_key):
     ppy = periods_per_year(freq)
 
     with mid:
-        max_h = {12: 36, 4: 16, 1: 10}.get(ppy, 12)
-        default_h = {12: 12, 4: 8, 1: 5}.get(ppy, 6)
+        max_h = {252: 30, 12: 36, 4: 16, 1: 10}.get(ppy, 12)
+        default_h = {252: 10, 12: 12, 4: 8, 1: 5}.get(ppy, 6)
         horizon = st.number_input(
             f"Horizon ({ui_horizon_word(freq)}s)",
             min_value=1,
@@ -838,7 +836,7 @@ def view_forecast(data: dict[str, pd.Series], specs_by_key):
 
 
 def ui_horizon_word(freq: str) -> str:
-    return {"M": "month", "Q": "quarter", "A": "year"}.get(freq, "period")
+    return {"D": "business day", "M": "month", "Q": "quarter", "A": "year"}.get(freq, "period")
 
 
 def _quality(mase: float | None, skill: float | None) -> tuple[str, str]:

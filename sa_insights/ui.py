@@ -166,6 +166,8 @@ def period_label(ts: pd.Timestamp, freq: str) -> str:
         return ts.strftime("%Y")
     if freq == "Q":
         return f"{ts.year} Q{(ts.month - 1) // 3 + 1}"
+    if freq == "D":
+        return ts.strftime("%d %b %Y")
     return ts.strftime("%b %Y")
 
 

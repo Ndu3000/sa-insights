@@ -126,3 +126,4 @@ mlruns/
 
 # host-side scratch used when rendering docs from the container warehouse
 .publish-tmp/
+.codacy/

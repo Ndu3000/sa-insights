@@ -23,7 +23,7 @@ from . import chronos_fm
 
 warnings.filterwarnings("ignore")
 
-FREQ_MONTHLY, FREQ_QUARTERLY, FREQ_ANNUAL = "M", "Q", "A"
+FREQ_DAILY, FREQ_MONTHLY, FREQ_QUARTERLY, FREQ_ANNUAL = "D", "M", "Q", "A"
 
 # The foundation model is optional and CPU-heavy. It competes on the same
 # backtest as every classical model, but only when its dependencies are
@@ -32,6 +32,11 @@ FREQ_MONTHLY, FREQ_QUARTERLY, FREQ_ANNUAL = "M", "Q", "A"
 FM_ENABLED = os.getenv("SA_INSIGHTS_FM", "1").lower() not in ("0", "false", "no")
 
 _FREQ_INFO = {
+    # Business-day calendar: the rand trades on weekdays, and a 7-day calendar
+    # would interpolate flat weekend "observations" into every fit. Season 5 is
+    # the day-of-week effect; per_year 252 is the trading-day count used for
+    # windows and annualisation.
+    FREQ_DAILY: {"season": 5, "offset": "B", "per_year": 252, "word": "business day"},
     FREQ_MONTHLY: {"season": 12, "offset": "MS", "per_year": 12, "word": "month"},
     FREQ_QUARTERLY: {"season": 4, "offset": "QS", "per_year": 4, "word": "quarter"},
     FREQ_ANNUAL: {"season": 1, "offset": "YS", "per_year": 1, "word": "year"},
@@ -46,11 +51,13 @@ class ForecastError(RuntimeError):
 # Frequency handling
 # ---------------------------------------------------------------------------
 def infer_frequency(index: pd.DatetimeIndex) -> str:
-    """Classify a DatetimeIndex as monthly / quarterly / annual by spacing."""
+    """Classify a DatetimeIndex as daily / monthly / quarterly / annual by spacing."""
     if len(index) < 3:
         return FREQ_ANNUAL
     deltas = np.diff(index.values).astype("timedelta64[D]").astype(float)
     median = float(np.median(deltas))
+    if median <= 4:
+        return FREQ_DAILY
     if median <= 45:
         return FREQ_MONTHLY
     if median <= 140:

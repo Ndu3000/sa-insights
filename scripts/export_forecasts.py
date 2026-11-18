@@ -34,14 +34,14 @@ if str(ROOT) not in sys.path:
 import pandas as pd  # noqa: E402
 
 from sa_insights import chronos_fm  # noqa: E402
-from sa_insights.catalog import BY_KEY, SERIES  # noqa: E402
+from sa_insights.catalog import BY_KEY, SERIES, SeriesSpec  # noqa: E402
 from sa_insights.forecast import ForecastError, run_forecast  # noqa: E402
 from sa_insights.sources import read_cache  # noqa: E402
 
 OUT = Path(os.getenv("SA_FORECASTS_OUT", ROOT / "docs" / "data" / "forecasts.json"))
 
 # One horizon per frequency: a year of months, two years of quarters, five years.
-HORIZONS = {"M": 12, "Q": 8, "A": 5}
+HORIZONS = {"D": 10, "M": 12, "Q": 8, "A": 5}
 
 # Series featured on the static page.
 FEATURED = ["cpi_yoy", "policy_rate", "usd_zar", "gdp_growth", "unemployment"]
@@ -49,6 +49,96 @@ FEATURED = ["cpi_yoy", "policy_rate", "usd_zar", "gdp_growth", "unemployment"]
 
 def _round(values, places: int = 4) -> list[float]:
     return [round(float(v), places) for v in values]
+
+
+def _clean(value, places: int = 4) -> float | None:
+    """Round a metric, mapping None and NaN to None so JSON stays honest."""
+    if value is None or value != value:
+        return None
+    return round(float(value), places)
+
+
+def _spec_for(key: str) -> SeriesSpec | None:
+    """Catalogue spec, or a labelled descriptor for the GDP nowcast estimate."""
+    spec = BY_KEY.get(key)
+    if spec is not None:
+        return spec
+    if key == "gdp_nowcast":
+        # The nowcast is an estimate, not a catalogued observation, so it has
+        # no SeriesSpec. Give it a minimal labelled descriptor instead of
+        # dropping it, and mark it clearly as a nowcast downstream.
+        return SeriesSpec(
+            key="gdp_nowcast",
+            label="GDP growth nowcast (estimate)",
+            unit="%",
+            frequency="Q",
+            category="Growth & Output",
+            description="Bridge-equation estimate of the next quarter's YoY GDP growth.",
+            provider="derived",
+            decimals=2,
+            higher_is_better=True,
+        )
+    return None
+
+
+def _leaderboard(head) -> list[dict]:
+    """Normalise the stored leaderboard to lowercase keys.
+
+    The warehouse stores the DataFrame's own column names ("Model", "Family",
+    "MASE"); consumers here expect the lowercase form, and emitting both
+    conventions caused a silent blank column on the page.
+    """
+    try:
+        raw = json.loads(head.get("leaderboard") or "[]")
+    except (json.JSONDecodeError, TypeError):
+        raw = []
+    return [
+        {
+            "model": row.get("Model", row.get("model")),
+            "family": row.get("Family", row.get("family")),
+            "mase": row.get("MASE", row.get("mase")),
+        }
+        for row in raw
+        if isinstance(row, dict)
+    ]
+
+
+def _entry_for(key: str, spec: SeriesSpec, group, last_periods: dict) -> dict | None:
+    """One series' payload entry from its latest forecast run rows."""
+    head = group.iloc[0]
+    path = group.dropna(subset=["forecast"]).sort_values("period")
+    if path.empty:
+        return None
+
+    # A nowcast has no observation history, so the indicators table cannot
+    # supply its last_period. Its anchor is the last *observed* quarter,
+    # which is the quarter before the one being estimated.
+    last_period = last_periods.get(key, "")
+    if not last_period and key == "gdp_nowcast":
+        last_period = (
+            pd.Timestamp(path["period"].iloc[0]) - pd.offsets.QuarterBegin(1)
+        ).strftime("%Y-%m-%d")
+
+    return {
+        "label": spec.label,
+        "unit": spec.unit,
+        "decimals": spec.decimals,
+        "frequency": spec.frequency,
+        "higher_is_better": spec.higher_is_better,
+        "model": head.get("model"),
+        "family": head.get("family"),
+        "horizon": int(head.get("horizon") or 0),
+        "mase": _clean(head.get("mase")),
+        "naive_mase": _clean(head.get("naive_mase")),
+        "skill_vs_naive": _clean(head.get("skill_vs_naive"), 1),
+        "last_period": last_period,
+        "last_value": round(float(head.get("last_value") or 0.0), 4),
+        "periods": [pd.Timestamp(p).strftime("%Y-%m-%d") for p in path["period"]],
+        "forecast": _round(path["forecast"]),
+        "lower": _round(path["lower"]),
+        "upper": _round(path["upper"]),
+        "leaderboard": _leaderboard(head),
+    }
 
 
 def _from_warehouse(only_featured: bool) -> dict | None:
@@ -95,60 +185,12 @@ def _from_warehouse(only_featured: bool) -> dict | None:
     for key, group in latest.groupby("series_key", sort=False):
         if only_featured and key not in FEATURED:
             continue
-        spec = BY_KEY.get(str(key))
+        spec = _spec_for(str(key))
         if spec is None:
             continue
-
-        head = group.iloc[0]
-        path = group.dropna(subset=["forecast"]).sort_values("period")
-        if path.empty:
-            continue
-
-        try:
-            raw_board = json.loads(head.get("leaderboard") or "[]")
-        except (json.JSONDecodeError, TypeError):
-            raw_board = []
-
-        # Normalise to lowercase keys. The warehouse stores the DataFrame's own
-        # column names ("Model", "Family", "MASE"); consumers here expect the
-        # lowercase form, and emitting both conventions caused a silent blank
-        # column on the page.
-        leaderboard = [
-            {
-                "model": row.get("Model", row.get("model")),
-                "family": row.get("Family", row.get("family")),
-                "mase": row.get("MASE", row.get("mase")),
-            }
-            for row in raw_board
-            if isinstance(row, dict)
-        ]
-
-        skill = head.get("skill_vs_naive")
-        mase = head.get("mase")
-        naive = head.get("naive_mase")
-
-        payload_series[key] = {
-            "label": spec.label,
-            "unit": spec.unit,
-            "decimals": spec.decimals,
-            "frequency": spec.frequency,
-            "higher_is_better": spec.higher_is_better,
-            "model": head.get("model"),
-            "family": head.get("family"),
-            "horizon": int(head.get("horizon") or 0),
-            "mase": None if mase is None or mase != mase else round(float(mase), 4),
-            "naive_mase": None if naive is None or naive != naive else round(float(naive), 4),
-            "skill_vs_naive": (
-                None if skill is None or skill != skill else round(float(skill), 1)
-            ),
-            "last_period": last_periods.get(str(key), ""),
-            "last_value": round(float(head.get("last_value") or 0.0), 4),
-            "periods": [pd.Timestamp(p).strftime("%Y-%m-%d") for p in path["period"]],
-            "forecast": [round(float(v), 4) for v in path["forecast"]],
-            "lower": [round(float(v), 4) for v in path["lower"]],
-            "upper": [round(float(v), 4) for v in path["upper"]],
-            "leaderboard": leaderboard,
-        }
+        entry = _entry_for(str(key), spec, group, last_periods)
+        if entry is not None:
+            payload_series[key] = entry
 
     # The worker that produced these runs may have had the foundation model
     # while this publisher does not, so derive activity from the runs.

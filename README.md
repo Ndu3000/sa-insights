@@ -73,7 +73,8 @@ See [DEPLOYMENT.md](DEPLOYMENT.md#chatbot) for the design and what was learned.
 | **IMF DataMapper** | Forward projections to 2031: growth, inflation, unemployment, fiscal balance, debt, current account, GDP per capita, population | IMF terms |
 | **World Bank** Open Data | Annual structural aggregates where no monthly/quarterly equivalent exists | CC BY 4.0 |
 
-34 indicators, roughly 7,800 observations.
+35 indicators, roughly 13,600 observations — the rand alone contributes
+~6,700 business-day observations since 2000.
 
 ### On recency
 
@@ -82,7 +83,8 @@ different things for different indicators:
 
 | Indicator | Latest | Lag |
 |-----------|--------|-----|
-| Repo, prime, USD/ZAR, bond yield | Nov 2026 | days |
+| **USD/ZAR** | today | **daily** (every business day, SARB reference rate) |
+| Repo, prime, bond yield | Nov 2026 | days |
 | Vehicle sales | Oct 2026 | ~1 month |
 | CPI level & inflation, PPI, trade, JSE all-share | Sep 2026 | ~2 months |
 | Retail, manufacturing, mining, leading, real effective FX | Aug 2026 | ~3 months |
@@ -149,6 +151,31 @@ result and the reason it competes rather than replaces.
 Because the model is a 48M-parameter network, it runs **at refresh time**, not
 in the browser: shipping ~191 MB of weights so WebAssembly could run hundreds of
 forward passes is untenable on mobile. The app ships the resulting numbers.
+
+### GDP nowcast — an estimate of the quarter that has not printed yet
+
+Official quarterly GDP arrives about two quarters after the period it
+describes. A **bridge equation** (ridge regression) estimates the missing
+quarter from indicators that publish monthly and therefore arrive first: the
+rand, the leading indicator, retail, manufacturing, mining, vehicle sales and
+interest rates. Drivers enter as the *previous* quarter's mean, so no future
+information leaks into the estimate.
+
+Only GDP is nowcast, and that was decided by evidence, not ambition. Four
+targets were backtested walk-forward against a naive last-value baseline:
+
+| Target | Skill vs naive | Verdict |
+|--------|----------------|---------|
+| GDP growth (YoY) | **+13–14%** | nowcast |
+| CPI inflation | −54% | do not nowcast |
+| Unemployment | +0.5% | no signal |
+| Retail sales | −20% | do not nowcast |
+
+The nowcast is stored under its own key (`gdp_nowcast`), labelled as an
+estimate everywhere it appears, and always shown with its walk-forward skill
+and an ~80% residual band — which is honestly wide (several percentage points),
+because monthly proxies cannot pin down quarterly GDP precisely. See
+`sa_insights/nowcast.py` for the full rationale.
 
 ---
 

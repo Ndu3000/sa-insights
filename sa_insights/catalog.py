@@ -22,7 +22,7 @@ CATEGORIES = [
     "Population",
 ]
 
-FREQ_LABELS = {"M": "Monthly", "Q": "Quarterly", "A": "Annual"}
+FREQ_LABELS = {"D": "Daily", "M": "Monthly", "Q": "Quarterly", "A": "Annual"}
 
 
 @dataclass(frozen=True)
@@ -361,8 +361,10 @@ SERIES: list[SeriesSpec] = [
         "EXCX135D",
         "ZAR",
         "External Sector",
-        "Official SARB reference rate, daily, collapsed to month-end. "
+        "Official SARB reference rate, every business day. "
         "Higher means a weaker rand.",
+        freq="D",
+        start="2000-01-01",
         decimals=2,
         higher_is_better=False,
     ),

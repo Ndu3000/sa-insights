@@ -21,6 +21,10 @@ dependencies = [
     "requests>=2.31",
     "statsmodels>=0.14",
     "scipy>=1.11",
+    # Ridge bridge nowcast (sa_insights.nowcast). Previously only present
+    # transitively via mlflow; declared so the nowcast cannot break if that
+    # dependency tree changes.
+    "scikit-learn>=1.4",
     "pyyaml>=6.0",
     "jsonschema>=4.0",
     "duckdb>=1.1",
