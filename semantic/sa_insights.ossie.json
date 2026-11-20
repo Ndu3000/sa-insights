@@ -3057,7 +3057,7 @@
           "custom_extensions": [
             {
               "vendor_name": "SA_INSIGHTS",
-              "data": "{\"series_key\": \"usd_zar\", \"label\": \"Rand per US dollar\", \"short_label\": \"Rand / USD\", \"category\": \"External Sector\", \"unit\": \"ZAR\", \"frequency\": \"D\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 6718, \"first_period\": \"2000-01-04\", \"last_period\": \"2026-11-18\", \"last_value\": 17.0718}"
+              "data": "{\"series_key\": \"usd_zar\", \"label\": \"Rand per US dollar\", \"short_label\": \"Rand / USD\", \"category\": \"External Sector\", \"unit\": \"ZAR\", \"frequency\": \"D\", \"provider\": \"sarb\", \"higher_is_better\": false, \"upstream_indicator\": {}, \"observations\": 6719, \"first_period\": \"2000-01-04\", \"last_period\": \"2026-11-19\", \"last_value\": 17.2532}"
             }
           ]
         },
@@ -5946,7 +5946,7 @@
       "custom_extensions": [
         {
           "vendor_name": "SA_INSIGHTS",
-          "data": "{\"generated_at\": \"2026-11-19T05:17:54+00:00\", \"document_version\": \"0.1.1\", \"series_count\": 35, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
+          "data": "{\"generated_at\": \"2026-11-20T05:20:51+00:00\", \"document_version\": \"0.1.1\", \"series_count\": 35, \"generator\": \"scripts/build_semantic_model.py\", \"note\": \"0.1.1 is the released shape (semantic_model array). 0.2.0.dev0 is the flat draft that the published JSON Schema validates; the upstream schema is unstable.\"}"
         }
       ]
     }
